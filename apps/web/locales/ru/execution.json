@@ -1,0 +1,100 @@
+{
+  "status": {
+    "queued": "В очереди",
+    "running": "Выполняется",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "cancelled": "Отменено",
+    "stopped": "Остановлено"
+  },
+  "waiting": {
+    "title": "Ожидание",
+    "description": "Ваша задача в очереди и начнётся автоматически после завершения текущей задачи.",
+    "followUpDescription": "Продолжение задачи начнётся автоматически"
+  },
+  "thinking": "Думаю…",
+  "thinkingPhrases": {
+    "doing": "Делаю…",
+    "executing": "Выполняю…",
+    "running": "Выполняется...",
+    "handling": "Разбираюсь…",
+    "accomplishing": "RodjerHelp в работе…"
+  },
+  "loadingAgent": "Загрузка агента…",
+  "waitingForResponse": "Ожидание ответа…",
+  "connectingToModel": "Подключение к {{modelName}}…",
+  "coldStartHint": "Первая задача может занять чуть больше времени…",
+  "agentWorking": "Агент работает…",
+  "stopAgent": "Остановить агента (Ctrl+C)",
+  "followUp": {
+    "interruptedPlaceholder": "Дайте новые инструкции…",
+    "noSessionPlaceholder": "Отправьте инструкцию, чтобы повторить…",
+    "completedPlaceholder": "Дайте новую задачу…",
+    "defaultPlaceholder": "Спросите что‑нибудь…"
+  },
+  "taskStatus": "Задача: {{status}}",
+  "processing": "Processing",
+  "system": "System",
+  "copyToClipboard": "Скопировать в буфер",
+  "permission": {
+    "title": "Permission Required",
+    "fileTitle": "File Permission Required",
+    "fileDeleteTitle": "File Deletion Warning",
+    "questionTitle": "Question",
+    "toolQuestion": "Allow {{toolName}}?",
+    "tool": "Tool",
+    "previewContent": "Preview content",
+    "backToOptions": "← Back to options",
+    "typeResponse": "Type your response...",
+    "orTypeOwn": "или введите свой вариант",
+    "enterDifferentOption": "Enter a different option...",
+    "cannotBeUndone": "This action cannot be undone.",
+    "deleteWarningSingle": "This file will be permanently deleted:",
+    "deleteWarningMultiple": "{{count}} files will be permanently deleted:",
+    "operations": {
+      "delete": "DELETE",
+      "overwrite": "OVERWRITE",
+      "modify": "MODIFY",
+      "create": "CREATE",
+      "rename": "RENAME",
+      "move": "MOVE"
+    }
+  },
+  "browserInstall": {
+    "title": "Chrome not installed",
+    "description": "Installing browser for automation...",
+    "downloading": "Downloading...",
+    "oneTimeSetup": "One-time setup (~250 MB total)"
+  },
+  "debug": {
+    "title": "Отладка",
+    "noLogs": "Пока нет отладочных логов. Запустите задачу, чтобы увидеть логи.",
+    "copyLogs": "Скопировать логи",
+    "copied": "Скопировано"
+  },
+  "browserScript": {
+    "title": "Browser Actions",
+    "actions": {
+      "navigateTo": "Navigate to {{hostname}}",
+      "navigate": "Navigate",
+      "fill": "Fill \"{{text}}\"",
+      "fillField": "Fill field",
+      "click": "Click {{target}}",
+      "press": "Press {{key}}",
+      "capturePage": "Capture page",
+      "screenshot": "Screenshot",
+      "waitForElement": "Wait for element",
+      "waitForPage": "Wait for page",
+      "waitForNavigation": "Wait for navigation",
+      "runScript": "Run script"
+    },
+    "showMore": "+{{count}} more",
+    "showLess": "Show less",
+    "showFewerActions": "Show fewer actions",
+    "showMoreActions": "Show {{count}} more actions"
+  },
+  "todos": {
+    "title": "Tasks",
+    "progress": "{{completed}} of {{total}}"
+  }
+}

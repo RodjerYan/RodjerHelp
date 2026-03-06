@@ -1,0 +1,15 @@
+{
+  "newTask": "Новая задача",
+  "searchTasks": "Поиск задач (Ctrl+K)",
+  "noConversations": "Пока нет диалогов",
+  "settings": "Настройки",
+  "searchPlaceholder": "Поиск задач...",
+  "results": "Результаты",
+  "lastSevenDays": "Последние 7 дней",
+  "noTasksFound": "Задачи не найдены",
+  "navigate": "Навигация",
+  "select": "Выбрать",
+  "close": "Закрыть",
+  "confirmDelete": "Вы уверены, что хотите удалить эту задачу?",
+  "deleteTask": "Удалить задачу"
+}

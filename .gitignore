@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-electron/
+release/
+build/
+coverage/
+.vscode/
+.idea/
+*.log
+.env
+.env.*
+uploads/
+*.local
+*.tmp
+.DS_Store
+Thumbs.db

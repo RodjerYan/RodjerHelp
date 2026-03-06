@@ -1,0 +1,128 @@
+{
+  "api": {
+    "timeout": "Время ожидания запроса истекло. Проверьте подключение к интернету.",
+    "timeoutRetry": "Время ожидания запроса истекло. Проверьте интернет и попробуйте ещё раз.",
+    "invalidKey": "Неверный API‑ключ",
+    "noKey": "Пожалуйста, введите API‑ключ.",
+    "validationFailed": "Не удалось проверить API‑ключ",
+    "networkError": "Сетевая ошибка. Проверьте подключение.",
+    "connectionFailed": "Не удалось проверить API‑ключ. Проверьте подключение к интернету.",
+    "unsupportedProvider": "Неподдерживаемый провайдер",
+    "unauthorized": "Нет доступа. Проверьте API‑ключ и права.",
+    "rateLimited": "Слишком много запросов. Попробуйте позже.",
+    "serverError": "Ошибка сервера. Попробуйте позже.",
+    "unknown": "Неизвестная ошибка. Попробуйте ещё раз."
+  },
+  "task": {
+    "notFound": "Задача не найдена",
+    "startFailed": "Не удалось запустить задачу",
+    "cancelFailed": "Не удалось отменить задачу",
+    "taskFailed": "Задача завершилась с ошибкой",
+    "noActiveTask": "Нет активной задачи для продолжения",
+    "noSession": "Нет активной сессии — начните новую задачу",
+    "sendMessageFailed": "Не удалось отправить сообщение",
+    "failed": "Задача завершилась с ошибкой",
+    "cancelled": "Задача отменена",
+    "messageTooLong": "Сообщение слишком длинное",
+    "emptyMessage": "Введите сообщение"
+  },
+  "adapter": {
+    "cliNotFound": "OpenCode CLI недоступен. Встроенный CLI мог отсутствовать или быть повреждён. Переустановите приложение.",
+    "disposed": "Адаптер уже освобождён и не может запускать новые задачи",
+    "noActiveProcess": "Нет активного процесса",
+    "exitWithCode": "OpenCode CLI завершился с кодом {{code}}"
+  },
+  "validation": {
+    "mustBeString": "{{field}} must be a string",
+    "required": "Это поле обязательно",
+    "exceedsLength": "{{field}} exceeds maximum length",
+    "unsupportedProvider": "Unsupported API key provider",
+    "untrustedWindow": "Untrusted window",
+    "focusedWindowRequired": "IPC‑запрос должен исходить из активного окна",
+    "invalidUrl": "Некорректный URL"
+  },
+  "provider": {
+    "notReady": "Нет готового провайдера. Подключите провайдера и выберите модель в «Настройки».",
+    "noModelsEndpoint": "Для этого провайдера не настроен endpoint моделей",
+    "noApiKey": "Для этого провайдера не найден API‑ключ"
+  },
+  "ollama": {
+    "connectionFailed": "Не удалось подключиться",
+    "noModels": "Модели Ollama не найдены",
+    "saveFailed": "Failed to save",
+    "invalidUrl": "Invalid URL format",
+    "protocolNotAllowed": "Разрешены только URL с протоколами http и https",
+    "invalidConfig": "Invalid Ollama configuration",
+    "modelsArray": "Неверная конфигурация Ollama: models должен быть массивом",
+    "invalidModelFormat": "Неверная конфигурация Ollama: неправильный формат модели",
+    "connectionTimeout": "Подключитьion timed out. Make sure Ollama is running.",
+    "cannotConnect": "Cannot connect to Ollama: {{message}}"
+  },
+  "bedrock": {
+    "invalidCredentials": "Неверные учетные данные",
+    "saveFailed": "Failed to save credentials",
+    "invalidAuthType": "Invalid authentication type",
+    "invalidAwsCredentials": "Неверные учетные данные AWS. Проверьте Access Key ID и Secret Access Key.",
+    "accessDenied": "Доступ запрещён. Убедитесь, что у ваших учетных данных AWS есть права для Bedrock.",
+    "profileNotFound": "Профиль AWS не найден. Проверьте файл ~/.aws/credentials.",
+    "accessKeyRequired": "Требуются Access Key ID и Secret Access Key",
+    "profileNameRequired": "Profile name is required",
+    "apiKeyRequired": "API‑ключ is required"
+  },
+  "model": {
+    "invalidConfig": "Invalid model configuration"
+  },
+  "litellm": {
+    "invalidConfig": "Invalid LiteLLM configuration",
+    "modelsArray": "Invalid LiteLLM configuration: models must be an array",
+    "invalidModelFormat": "Invalid LiteLLM configuration: invalid model format"
+  },
+  "lmstudio": {
+    "notConfigured": "No LM Studio configured"
+  },
+  "azureFoundry": {
+    "baseUrlRequired": "Invalid Azure Foundry configuration: baseUrl is required",
+    "deploymentRequired": "Invalid Azure Foundry configuration: deploymentName is required",
+    "invalidAuthType": "Неверная конфигурация Azure AI Foundry: authType должен быть api-key или entra-id",
+    "invalidEnabled": "Invalid Azure Foundry configuration: enabled must be a boolean",
+    "invalidBaseUrl": "Неверная конфигурация Azure AI Foundry: некорректный формат base URL",
+    "missingEndpoint": "Не указан endpoint Azure AI Foundry"
+  },
+  "connector": {
+    "protocolRequired": "Подключитьor URL must use http:// or https://",
+    "invalidUrl": "Invalid connector URL: {{url}}"
+  },
+  "settings": {
+    "invalidDebugFlag": "Invalid debug mode flag",
+    "invalidTheme": "Invalid theme value",
+    "invalidBaseUrl": "Invalid base URL"
+  },
+  "i18n": {
+    "unsupportedLanguage": "Unsupported language"
+  },
+  "url": {
+    "protocolNotAllowed": "Only http and https URLs are allowed"
+  },
+  "permission": {
+    "denied": "Permission denied",
+    "required": "Permission required"
+  },
+  "generic": {
+    "unknown": "An unknown error occurred",
+    "tryAgain": "Please try again"
+  },
+  "app": {
+    "mustRunInDesktop": "Это приложение нужно запускать внутри десктоп‑приложения RodjerHelp.",
+    "unableToStart": "Unable to Start",
+    "updateRequired": "Update Required",
+    "schemaNewerMessage": "Эти данные созданы более новой версией RodjerHelp (schema v{{version}}).",
+    "schemaNewerDetail": "Ваше приложение поддерживает schema до v{{version}}. Обновите RodjerHelp, чтобы продолжить."
+  },
+  "auth": {
+    "sessionExpired": "{{provider}} Session Expired",
+    "reLoginTo": "Re-login to {{provider}}",
+    "failed": "Ошибка авторизации",
+    "missingToken": "Не найден токен доступа",
+    "invalidCallback": "Некорректный callback авторизации"
+  }
+}

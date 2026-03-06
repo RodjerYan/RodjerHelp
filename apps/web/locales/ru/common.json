@@ -1,0 +1,92 @@
+{
+  "app": {
+    "name": "Rodjer Help",
+    "byline": "By RodjerYan"
+  },
+  "buttons": {
+    "send": "Отправить",
+    "submit": "Отправить",
+    "stop": "Остановить",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "deleteAll": "Удалить всё",
+    "allow": "Разрешить",
+    "deny": "Запретить",
+    "continue": "Продолжить",
+    "doneContinue": "Готово, продолжить",
+    "goHome": "На главную",
+    "startNewTask": "Новая задача",
+    "test": "Проверить",
+    "testing": "Проверка…",
+    "saving": "Сохранение…",
+    "validating": "Проверка…",
+    "export": "Экспорт",
+    "exported": "Экспортировано",
+    "clear": "Очистить",
+    "clearAll": "Очистить всё",
+    "yes": "Да",
+    "no": "Нет",
+    "retry": "Повторить",
+    "saveApiKey": "Сохранить API‑ключ",
+    "copyToClipboard": "Скопировать в буфер",
+    "dismiss": "Скрыть",
+    "messageTooLong": "Сообщение слишком длинное",
+    "enterMessage": "Введите сообщение",
+    "quit": "Выход"
+  },
+  "aria": {
+    "scrollToBottom": "Прокрутить вниз",
+    "customResponse": "Пользовательский ответ"
+  },
+  "status": {
+    "running": "Выполняется",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "cancelled": "Отменено",
+    "queued": "В очереди",
+    "pending": "Ожидает",
+    "waiting": "Ожидание",
+    "stopped": "Остановлено",
+    "interrupted": "Прервано"
+  },
+  "time": {
+    "justNow": "только что",
+    "minutesAgo": "{{count}}м назад",
+    "hoursAgo": "{{count}}ч назад",
+    "daysAgo": "{{count}}д назад",
+    "today": "Сегодня",
+    "yesterday": "Вчера"
+  },
+  "nav": {
+    "home": "Главная",
+    "history": "История",
+    "settings": "Настройки"
+  },
+  "labels": {
+    "awsCredentials": "Учетные данные AWS",
+    "gcpCredentials": "Учетные данные GCP",
+    "localApiKey": "Локальный API‑ключ",
+    "azureFoundryEntraId": "Azure Foundry (Entra ID)",
+    "bedrockApiKey": "API‑ключ Bedrock",
+    "awsAccessKeys": "AWS Access Keys",
+    "awsProfile": "Профиль AWS: {{name}}"
+  },
+  "contextMenu": {
+    "addToDictionary": "Добавить в словарь"
+  },
+  "fileFilters": {
+    "text": "Текстовые файлы",
+    "log": "Файлы логов",
+    "skill": "Файлы навыков",
+    "all": "Все файлы"
+  },
+  "model": {
+    "selectModel": "Выберите модель",
+    "current": "Текущая",
+    "configureModel": "Настроить модель",
+    "changeModel": "Сменить модель"
+  },
+  "messages": "Сообщений: {{count}}"
+}
