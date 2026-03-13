@@ -191,7 +191,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       const audioBlob = await new Promise<Blob>((resolve, reject) => {
         const recorder = mediaRecorderRef.current;
         if (!recorder) {
-          reject(new Error('MediaRecorder is null'));
+          reject(new Error('MediaRecorder отсутствует'));
           return;
         }
 
@@ -237,7 +237,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       cleanup();
       const speechError = new SpeechRecognitionError(
         'TRANSCRIPTION_FAILED',
-        error instanceof Error ? error.message : 'Failed to transcribe audio',
+        error instanceof Error ? error.message : 'Не удалось распознать аудио',
       );
       setState((prev) => ({
         ...prev,
@@ -257,9 +257,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     formatErrorMessage,
   ]);
 
-  /**
-   * Start recording audio
-   */
+   /**
+    * Начать запись аудио
+    */
   const startRecording = useCallback(async () => {
     if (state.isRecording || state.isTranscribing) {
       return;
@@ -268,7 +268,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     if (!state.isConfigured) {
       const error = new SpeechRecognitionError(
         'NOT_CONFIGURED',
-        'ElevenLabs API is not configured. Please add your API key in settings.',
+        'API ElevenLabs не настроен. Добавьте API‑ключ в настройках.',
       );
       setState((prev) => ({ ...prev, error }));
       onError?.(error);
@@ -278,26 +278,26 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     try {
       setState((prev) => ({ ...prev, error: null, recordingDuration: 0 }));
 
-      // Request microphone access
+      // Запрос доступа к микрофону
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Create MediaRecorder
+      // Создание MediaRecorder
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       recordingStartTimeRef.current = Date.now();
 
-      // Collect audio data
+      // Сбор аудиоданных
       mediaRecorder.ondataavailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      // Handle recording errors
+      // Обработка ошибок записи
       mediaRecorder.onerror = () => {
-        const error = new SpeechRecognitionError('RECORDING_ERROR', 'Recording error occurred');
+        const error = new SpeechRecognitionError('RECORDING_ERROR', 'Произошла ошибка записи');
         setState((prev) => ({ ...prev, isRecording: false, error }));
         onError?.(error);
         cleanup();
@@ -308,13 +308,13 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       setState((prev) => ({ ...prev, isRecording: true }));
       onRecordingStateChange?.(true);
 
-      // Update duration every 100ms
+      // Обновление длительности каждые 100 мс
       durationIntervalRef.current = setInterval(() => {
         const duration = Date.now() - recordingStartTimeRef.current;
         setState((prev) => ({ ...prev, recordingDuration: duration }));
       }, 100);
 
-      // Set max duration timeout
+      // Тайм‑аут максимальной длительности
       recordingTimeoutRef.current = setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           stopRecording();
@@ -327,19 +327,19 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
       if (error instanceof DOMException && error.name === 'NotAllowedError') {
         speechError = new SpeechRecognitionError(
           'MICROPHONE_DENIED',
-          'Microphone access denied. Please allow microphone access in settings.',
+          'Доступ к микрофону запрещён. Разрешите доступ к микрофону в настройках.',
           error,
         );
       } else if (error instanceof DOMException && error.name === 'NotFoundError') {
         speechError = new SpeechRecognitionError(
           'NO_MICROPHONE',
-          'No microphone found. Please check your audio devices.',
+          'Микрофон не найден. Проверьте аудиоустройства.',
           error,
         );
       } else {
         speechError = new SpeechRecognitionError(
           'RECORDING_FAILED',
-          `Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Не удалось начать запись: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
           error instanceof Error ? error : undefined,
         );
       }
@@ -358,9 +358,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     stopRecording,
   ]);
 
-  /**
-   * Cancel recording without transcribing
-   */
+   /**
+    * Отмена записи без распознавания
+    */
   const cancelRecording = useCallback(() => {
     if (!state.isRecording) {
       return;
@@ -381,9 +381,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     onRecordingStateChange?.(false);
   }, [state.isRecording, cleanup, onRecordingStateChange]);
 
-  /**
-   * Retry transcription of last recording
-   */
+   /**
+    * Повторить распознавание последней записи
+    */
   const retry = useCallback(async () => {
     if (!lastAudioDataRef.current || state.isTranscribing || state.isRecording) {
       return;
@@ -413,7 +413,7 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     } catch (error) {
       const speechError = new SpeechRecognitionError(
         'TRANSCRIPTION_FAILED',
-        error instanceof Error ? error.message : 'Failed to transcribe audio',
+        error instanceof Error ? error.message : 'Не удалось распознать аудио',
       );
       setState((prev) => ({ ...prev, isTranscribing: false, error: speechError }));
       onError?.(speechError);
@@ -427,17 +427,17 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     formatErrorMessage,
   ]);
 
-  /**
-   * Clear the current error
-   */
+   /**
+    * Очистить текущую ошибку
+    */
   const clearError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }));
   }, []);
 
-  // Handle Escape key to cancel recording
+  // Обработка Escape для отмены записи
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Escape to cancel recording
+      // Escape для отмены записи
       if (event.key === 'Escape' && state.isRecording) {
         event.preventDefault();
         cancelRecording();

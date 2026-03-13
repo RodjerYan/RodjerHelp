@@ -255,7 +255,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       console.log('[OpenCode CLI]', pidMsg);
       this.emit('debug', { type: 'info', message: pidMsg });
 
-      this.emit('progress', { stage: 'loading', message: 'Loading agent...' });
+      this.emit('progress', { stage: 'loading', message: 'Загрузка агента...' });
 
       this.ptyProcess.onData((data: string) => {
         /* eslint-disable no-control-regex */
@@ -799,10 +799,10 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
 
   private emitPlanMessage(input: StartTaskInput, sessionId: string): void {
     const verificationSection = input.verification?.length
-      ? `\n\n**Verification:**\n${input.verification.map((v, i) => `${i + 1}. ${v}`).join('\n')}`
+      ? `\n\n**Проверка:**\n${input.verification.map((v, i) => `${i + 1}. ${v}`).join('\n')}`
       : '';
-    const skillsSection = input.skills?.length ? `\n\n**Skills:** ${input.skills.join(', ')}` : '';
-    const planText = `**Plan:**\n\n**Goal:** ${input.goal}\n\n**Steps:**\n${input.steps?.map((s, i) => `${i + 1}. ${s}`).join('\n') ?? ''}${verificationSection}${skillsSection}`;
+    const skillsSection = input.skills?.length ? `\n\n**Навыки:** ${input.skills.join(', ')}` : '';
+    const planText = `**План:**\n\n**Цель:** ${input.goal}\n\n**Шаги:**\n${input.steps?.map((s, i) => `${i + 1}. ${s}`).join('\n') ?? ''}${verificationSection}${skillsSection}`;
 
     const syntheticMessage: OpenCodeMessage = {
       type: 'text',

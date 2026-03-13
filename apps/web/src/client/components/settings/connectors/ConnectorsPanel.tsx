@@ -24,7 +24,7 @@ export function ConnectorsPanel() {
   const [addError, setAddError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
-  // Listen for OAuth callback
+  // Отслеживаем OAuth‑ответ
   useEffect(() => {
     const unsubscribe = window.accomplish?.onMcpAuthCallback?.((callbackUrl: string) => {
       try {
@@ -33,14 +33,14 @@ export function ConnectorsPanel() {
         const state = parsed.searchParams.get('state');
         if (code && state) {
           completeOAuth(state, code).catch((err) => {
-            console.error('Failed to complete OAuth:', err);
+            console.error('Не удалось завершить OAuth:', err);
             setOauthError(
               err instanceof Error ? err.message : t('connectors.oauthCompletionFailed'),
             );
           });
         }
       } catch (err) {
-        console.error('Failed to parse OAuth callback URL:', err);
+        console.error('Не удалось разобрать URL OAuth‑ответа:', err);
         setOauthError(t('connectors.invalidOauthCallback'));
       }
     });
@@ -52,7 +52,7 @@ export function ConnectorsPanel() {
     (serverUrl: string): string => {
       try {
         const parsed = new URL(serverUrl);
-        // Use hostname without TLD, capitalize first letter
+        // Берём имя хоста без домена верхнего уровня и делаем первую букву заглавной
         const parts = parsed.hostname.split('.');
         const name = parts.length > 1 ? parts[parts.length - 2] : parts[0];
         return name.charAt(0).toUpperCase() + name.slice(1);
@@ -67,7 +67,7 @@ export function ConnectorsPanel() {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) return;
 
-    // Basic URL validation
+    // Базовая проверка URL
     try {
       const parsed = new URL(trimmedUrl);
       if (!parsed.protocol.startsWith('http')) {
@@ -87,7 +87,7 @@ export function ConnectorsPanel() {
       await addConnector(name, trimmedUrl);
       setUrl('');
     } catch (err) {
-      console.error('Failed to add connector:', err);
+      console.error('Не удалось добавить коннектор:', err);
       setAddError(err instanceof Error ? err.message : t('connectors.addFailed'));
     } finally {
       setAdding(false);
@@ -100,7 +100,7 @@ export function ConnectorsPanel() {
       try {
         await startOAuth(connectorId);
       } catch (err) {
-        console.error('Failed to start OAuth:', err);
+        console.error('Не удалось запустить OAuth:', err);
         setOauthError(err instanceof Error ? err.message : t('connectors.oauthStartFailed'));
       }
     },
@@ -126,10 +126,10 @@ export function ConnectorsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Description */}
+      {/* Описание */}
       <p className="text-sm text-muted-foreground">{t('connectors.description')}</p>
 
-      {/* Add form */}
+      {/* Форма добавления */}
       <div className="flex gap-2">
         <Input
           type="url"
@@ -165,7 +165,7 @@ export function ConnectorsPanel() {
         </button>
       </div>
 
-      {/* Errors */}
+      {/* Ошибки */}
       <AnimatePresence>
         {(addError || oauthError) && (
           <motion.div
@@ -181,7 +181,7 @@ export function ConnectorsPanel() {
         )}
       </AnimatePresence>
 
-      {/* Connector list */}
+      {/* Список коннекторов */}
       {connectors.length > 0 ? (
         <div className="grid gap-3">
           <AnimatePresence mode="popLayout">

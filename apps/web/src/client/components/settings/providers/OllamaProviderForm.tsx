@@ -42,7 +42,7 @@ function ToolSupportBadge({
   const config = {
     supported: {
       label: t('toolBadge.supported'),
-      className: 'bg-green-500/20 text-green-400 border-green-500/30',
+      className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       icon: (
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

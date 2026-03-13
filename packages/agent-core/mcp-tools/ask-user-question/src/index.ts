@@ -8,7 +8,20 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 const QUESTION_API_PORT = process.env.QUESTION_API_PORT || '9227';
-const QUESTION_API_URL = `http://localhost:${QUESTION_API_PORT}/question`;
+
+// ВАЖНО: не используем localhost, чтобы избежать резолва в ::1 (IPv6)
+const QUESTION_API_HOST = process.env.QUESTION_API_HOST || '127.0.0.1';
+
+// Можно полностью переопределить URL при необходимости
+const QUESTION_API_URL =
+  process.env.QUESTION_API_URL || `http://${QUESTION_API_HOST}:${QUESTION_API_PORT}/question`;
+
+// Таймаут запроса (мс). Если env кривой/пустой — будет 300000.
+const QUESTION_API_TIMEOUT_MS = (() => {
+  const raw = process.env.QUESTION_API_TIMEOUT_MS;
+  const n = raw ? Number(raw) : 300000;
+  return Number.isFinite(n) && n > 0 ? n : 300000;
+})();
 
 interface QuestionOption {
   label: string;
@@ -124,7 +137,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         options: question.options,
         multiSelect: question.multiSelect,
       }),
-      signal: AbortSignal.timeout(300000), // 5 minutes — matches question API server timeout
+      signal: AbortSignal.timeout(QUESTION_API_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -177,7 +190,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('AskUserQuestion MCP Server started');
+  console.error(`AskUserQuestion MCP Server started (url=${QUESTION_API_URL})`);
 }
 
 main().catch((error) => {

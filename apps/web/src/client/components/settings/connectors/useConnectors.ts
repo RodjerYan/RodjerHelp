@@ -14,8 +14,8 @@ export function useConnectors() {
       setConnectors(data);
       setError(null);
     } catch (err) {
-      console.error('Failed to load connectors:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load connectors');
+      console.error('Не удалось загрузить коннекторы:', err);
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить коннекторы');
     } finally {
       setLoading(false);
     }

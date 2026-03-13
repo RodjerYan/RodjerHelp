@@ -117,11 +117,18 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     },
 
     onError: (error: Error) => {
+      const sessionId = taskManager.getSessionId(taskId);
+
       forwardToRenderer('task:update', {
         taskId,
         type: 'error',
         error: error.message,
+        sessionId,
       });
+
+      if (sessionId) {
+        storage.updateTaskSessionId(taskId, sessionId);
+      }
 
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
     },

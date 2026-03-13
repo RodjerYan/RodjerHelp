@@ -256,7 +256,7 @@ export function AzureFoundryProviderForm({
 
             <ConnectedControls onDisconnect={onDisconnect} />
 
-            {/* Model Selector */}
+            {/* Выбор модели */}
             <ModelSelector
               models={models}
               value={connectedProvider?.selectedModelId || null}

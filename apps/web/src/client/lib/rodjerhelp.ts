@@ -26,6 +26,16 @@ import type {
   McpConnector,
 } from '@accomplish_ai/agent-core/common';
 
+
+export interface AppUpdateStatus {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+  version?: string;
+  progress?: number;
+  transferred?: number;
+  total?: number;
+  message?: string;
+}
+
 export interface PickedFile {
   path: string;
   name: string;
@@ -57,6 +67,12 @@ export interface RodjerHelpAPI {
 
   // Session management
   resumeSession(sessionId: string, prompt: string, taskId?: string): Promise<Task>;
+
+  // Updates
+  getUpdateStatus(): Promise<AppUpdateStatus>;
+  checkForUpdates(): Promise<AppUpdateStatus>;
+  installDownloadedUpdate(): Promise<boolean>;
+  onUpdateStatus?(callback: (status: AppUpdateStatus) => void): () => void;
 
   // Settings
   getApiKeys(): Promise<ApiKeyConfig[]>;
@@ -363,6 +379,18 @@ export interface RodjerHelpAPI {
 
   // Chat attachments
   pickChatFiles(): Promise<PickedFile[]>;
+  getLastPickedChatFiles?(): Promise<string[]>;
+  setLastPickedChatFiles?(files: PickedFile[] | string[]): Promise<void>;
+  clearLastPickedChatFiles?(): Promise<void>;
+  readChatFiles?(paths: string[]): Promise<Array<{
+    path: string;
+    name: string;
+    size: number;
+    truncated?: boolean;
+    text?: string;
+    error?: string;
+  }>>;
+  resolveDroppedChatFiles?(files: File[]): Promise<PickedFile[]>;
   addSkillFromFile(filePath: string): Promise<Skill>;
   addSkillFromGitHub(rawUrl: string): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
@@ -392,6 +420,11 @@ declare global {
   interface Window {
     accomplish?: RodjerHelpAPI;
     accomplishShell?: RodjerHelpShell;
+    rodjerhelpExtras?: {
+      getLastPickedChatFiles?: () => Promise<string[]>;
+      setLastPickedChatFiles?: (files: PickedFile[] | string[]) => Promise<void>;
+      clearLastPickedChatFiles?: () => Promise<void>;
+    };
   }
 }
 

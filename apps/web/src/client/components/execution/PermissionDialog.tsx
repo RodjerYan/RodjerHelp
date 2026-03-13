@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { springs } from '../../lib/animations';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ function getOperationBadgeClasses(operation?: string): string {
     case 'modify':
       return 'bg-yellow-500/10 text-yellow-600';
     case 'create':
-      return 'bg-green-500/10 text-green-600';
+      return 'bg-blue-500/10 text-blue-400';
     case 'rename':
     case 'move':
       return 'bg-blue-500/10 text-blue-600';
@@ -48,281 +48,95 @@ interface PermissionDialogProps {
 export function PermissionDialog({ permissionRequest, onRespond }: PermissionDialogProps) {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
-  // AUTO_DIALOGS_WITH_FILES_V10
+
+  const autoHandledRef = useRef<string | null>(null);
+
   useEffect(() => {
-    (async () => {
+    const requestKey = [
+      permissionRequest.type,
+      permissionRequest.fileOperation || '',
+      permissionRequest.header || '',
+      permissionRequest.question || '',
+    ].join('::');
+
+    if (autoHandledRef.current === requestKey) return;
+
+    const run = async () => {
       try {
-        const w = window as any;
         const candidates = [
-          w?.accomplish?.getLastPickedChatFiles,
-          w?.rodjerhelpExtras?.getLastPickedChatFiles,
-          w?.getLastPickedChatFiles,
-        ] as any[];
+          (window as any)?.accomplish?.getLastPickedChatFiles,
+          (window as any)?.rodjerhelpExtras?.getLastPickedChatFiles,
+          (window as any)?.getLastPickedChatFiles,
+        ] as Array<(() => Promise<string[]>) | undefined>;
+
         let paths: string[] = [];
         for (const getter of candidates) {
           if (typeof getter === 'function') {
             const val = await getter();
             const arr = Array.isArray(val) ? val.filter(Boolean).map(String) : [];
-            if (arr.length) { paths = arr; break; }
+            if (arr.length) {
+              paths = arr;
+              break;
+            }
           }
         }
+
         if (!paths.length) return;
+
+        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
+        const titleText = title.toLowerCase();
         const firstPath = paths[0];
-        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
-        const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-        const submitBtn = buttons.find((b) => /submit/i.test(b.textContent || '') || /отправ/i.test(b.textContent || '')) || null;
-
-        if (/(данные|источник)/i.test(title)) {
-          const option = Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]')).find((el) => /(excel|csv|файл)/i.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          if (option) option.click();
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-
-        if (/файл/i.test(title)) {
-          const input = document.querySelector('input[type="text"], input') as HTMLInputElement | null;
-          if (input) {
-            input.focus();
-            input.value = firstPath;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-
-        if (/ошибка/i.test(title)) {
-          const isImage = /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(firstPath);
-          const want = isImage ? /(скрин|фото|изображ)/i : /(текст|stack|trace|ошибк)/i;
-          const option = Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]')).find((el) => want.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          if (option) option.click();
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-
-        if (/уточнение/i.test(title)) {
-          const option = Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]')).find((el) => /(бренд|модель)/i.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          if (option) option.click();
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-      } catch (e) {
-        console.warn('[AUTO_DIALOGS_WITH_FILES_V10] failed', e);
-      }
-    })();
-  }, []);
-
-  // AUTO_DIALOGS_WITH_FILES_V7
-  useEffect(() => {
-    (async () => {
-      try {
-        const w = window as any;
-        const candidates = [
-          w && w.rodjerhelpExtras && w.rodjerhelpExtras.getLastPickedChatFiles,
-          w && w.accomplish && w.accomplish.getLastPickedChatFiles,
-          w && w.getLastPickedChatFiles,
-        ] as any[];
-        let paths = [] as string[];
-        for (const getter of candidates) {
-          if (typeof getter === 'function') {
-            const val = await getter();
-            const arr = Array.isArray(val) ? val.filter(Boolean).map(String) : [];
-            if (arr.length) { paths = arr; break; }
-          }
-        }
-        if (!paths.length) return;
-        const firstPath = paths[0];
-        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
-
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const submitBtn = buttons.find((b) => /submit/i.test(b.textContent || '') || /отправ/i.test(b.textContent || '')) || null;
-
-        if (/(данные|источник)/i.test(title)) {
-          const option = Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]')).find((el) => /(excel|csv|файл)/i.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          if (option) (option as HTMLElement).click();
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-
-        if (/файл/i.test(title)) {
-          const input = document.querySelector('input[type="text"], input') as HTMLInputElement | null;
-          if (input) {
-            input.focus();
-            input.value = firstPath;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-
-        if (/ошибка/i.test(title)) {
-          const isImage = /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(firstPath);
-          const want = isImage ? /(скрин|фото|изображ)/i : /(текст|stack|trace|ошибк)/i;
-          const option = Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]')).find((el) => want.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          if (option) (option as HTMLElement).click();
-          if (submitBtn) submitBtn.click();
-          return;
-        }
-      } catch (e) {
-        console.warn('[AUTO_DIALOGS_WITH_FILES_V7] failed', e);
-      }
-    })();
-  }, []);
-
-  // AUTO_SOURCE_FILE_DIALOG_V5: if attachment exists, auto-answer built-in dialogs (Данные/Источник and Файл).
-  useEffect(() => {
-    (async () => {
-      try {
-        const extras = (window as any)?.rodjerhelpExtras;
-        const getter = extras?.getLastPickedChatFiles;
-        if (typeof getter !== 'function') return;
-
-        const paths = await getter();
-        const firstPath = Array.isArray(paths) && paths.length ? String(paths[0]) : '';
-        if (!firstPath) return;
-
-        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
-
-        if (/(данные|источник)/i.test(title)) {
-          const optionEl =
-            Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]'))
-              .find((el) => /(excel|csv|файл)/i.test((el.textContent || '').trim())) as HTMLElement | undefined;
-          (optionEl as any)?.click();
-
-          const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-          const submitBtn =
-            buttons.find((b) => /submit/i.test(b.textContent || '')) ||
-            buttons.find((b) => /отправ/i.test(b.textContent || '')) ||
-            null;
-          submitBtn?.click();
-          return;
-        }
-
-        if (/файл/i.test(title)) {
-          const input =
-            (document.querySelector('input[type="text"]') ||
-             document.querySelector('input')) as HTMLInputElement | null;
-
-          if (input) {
-            input.focus();
-            input.value = firstPath;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-
-          const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-          const submitBtn =
-            buttons.find((b) => /submit/i.test(b.textContent || '')) ||
-            buttons.find((b) => /отправ/i.test(b.textContent || '')) ||
-            null;
-          submitBtn?.click();
-        }
-      } catch (e) {
-        console.warn('[AUTO_SOURCE_FILE_DIALOG_V5] failed', e);
-      }
-    })();
-  }, []);
-
-  // AUTO_SOURCE_FILE_DIALOG_V3: auto-answer Source and File dialogs when an attachment exists.
-  useEffect(() => {
-    (async () => {
-      try {
-        // @ts-ignore
-        const extras = (window as any)?.rodjerhelpExtras;
-        const getter = extras?.getLastPickedChatFiles;
-        if (typeof getter !== 'function') return;
-
-        const paths = await getter();
-        const firstPath = Array.isArray(paths) && paths.length ? String(paths[0]) : '';
-        if (!firstPath) return;
-
-        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
-
-        // Source dialog: pick File option and submit
-        if (/источник/i.test(title)) {
-          const optionEl =
-            Array.from(document.querySelectorAll('button, [role="button"], [data-radix-collection-item]'))
-              .find((el) => /файл/i.test((el.textContent || '').trim()));
-          // @ts-ignore
-          optionEl?.click();
-
-          const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-          const submitBtn =
-            buttons.find((b) => /submit/i.test(b.textContent || '')) ||
-            buttons.find((b) => /отправ/i.test(b.textContent || '')) ||
-            null;
-          submitBtn?.click();
-          return;
-        }
-
-        // File dialog: put absolute path and submit
-        if (/файл/i.test(title)) {
-          const input =
-            (document.querySelector('input[placeholder*="Enter"]') ||
-              document.querySelector('input[placeholder*="option"]') ||
-              document.querySelector('input[type="text"]')) as HTMLInputElement | null;
-
-          if (input) {
-            input.focus();
-            input.value = firstPath;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-
-          const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
-          const submitBtn =
-            buttons.find((b) => /submit/i.test(b.textContent || '')) ||
-            buttons.find((b) => /отправ/i.test(b.textContent || '')) ||
-            null;
-          submitBtn?.click();
-        }
-      } catch (e) {
-        console.warn('[AUTO_SOURCE_FILE_DIALOG_V3] failed', e);
-      }
-    })();
-  }, []);
-
-  // AUTO_FILE_QUESTION_V2: auto-fill "Файл" dialog with last picked attachment path (DOM-based)
-  useEffect(() => {
-    (async () => {
-      try {
-        const titleText = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
-        if (!/файл/i.test(titleText)) return;
-
-        // @ts-ignore
-        const api = (window as any)?.rodjerhelpExtras;
-        const getter = api?.getLastPickedChatFiles;
-        if (typeof getter !== 'function') return;
-
-        const paths = await getter();
-        const p = Array.isArray(paths) && paths.length ? String(paths[0]) : '';
-        if (!p) return;
-
-        const input =
-          (document.querySelector('input[placeholder*="Enter"]') ||
-            document.querySelector('input[placeholder*="option"]') ||
-            document.querySelector('input[type="text"]')) as HTMLInputElement | null;
-
-        if (input) {
-          input.focus();
-          input.value = p;
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
 
         const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
         const submitBtn =
-          buttons.find((b) => /submit/i.test(b.textContent || '')) ||
-          buttons.find((b) => /отправ/i.test(b.textContent || '')) ||
+          buttons.find((b) => /submit/i.test(b.textContent || '') || /отправ/i.test(b.textContent || '')) ||
           null;
 
-        submitBtn?.click();
+        const optionCandidates = Array.from(
+          document.querySelectorAll('button, [role="button"], [data-radix-collection-item]'),
+        ) as HTMLElement[];
+
+        const fillInput = () => {
+          const input = document.querySelector(
+            'input[placeholder*="Enter"], input[placeholder*="option"], input[type="text"], input',
+          ) as HTMLInputElement | null;
+          if (!input) return false;
+          input.focus();
+          input.value = firstPath;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          return true;
+        };
+
+        let handled = false;
+
+        if (/(данные|источник)/i.test(titleText)) {
+          const option = optionCandidates.find((el) => /(excel|csv|файл)/i.test((el.textContent || '').trim()));
+          option?.click();
+          submitBtn?.click();
+          handled = true;
+        } else if (/файл/i.test(titleText)) {
+          handled = fillInput();
+          if (handled) submitBtn?.click();
+        } else if (/ошибка/i.test(titleText)) {
+          const isImage = /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(firstPath);
+          const want = isImage ? /(скрин|фото|изображ)/i : /(текст|stack|trace|ошибк)/i;
+          const option = optionCandidates.find((el) => want.test((el.textContent || '').trim()));
+          option?.click();
+          submitBtn?.click();
+          handled = true;
+        }
+
+        if (handled) {
+          autoHandledRef.current = requestKey;
+        }
       } catch (e) {
-        console.warn('[AUTO_FILE_QUESTION_V2] failed', e);
+        console.warn('[AUTO_DIALOGS_WITH_FILES] failed', e);
       }
-    })();
-  }, []);
+    };
+
+    void run();
+  }, [permissionRequest]);
 
   const [customResponse, setCustomResponse] = useState('');
 
@@ -383,12 +197,12 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
               )}
             >
               {isDeleteOperation(permissionRequest)
-                ? 'File Deletion Warning'
+                ? 'Предупреждение об удалении файла'
                 : permissionRequest.type === 'file'
-                  ? 'File Permission Required'
+                  ? 'Нужно разрешение на доступ к файлу'
                   : permissionRequest.type === 'question'
-                    ? permissionRequest.header || 'Question'
-                    : 'Permission Required'}
+                    ? permissionRequest.header || 'Вопрос'
+                    : 'Требуется разрешение'}
             </h3>
           </div>
 
@@ -401,8 +215,8 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                       {(() => {
                         const paths = getDisplayFilePaths(permissionRequest);
                         return paths.length > 1
-                          ? `${paths.length} files will be permanently deleted:`
-                          : 'This file will be permanently deleted:';
+                          ? `${paths.length} файлов будут удалены без возможности восстановления:`
+                          : 'Этот файл будет удалён без возможности восстановления:';
                       })()}
                     </p>
                   </div>
@@ -475,7 +289,7 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                 {permissionRequest.contentPreview && (
                   <details className="mb-4">
                     <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                      Preview content
+                      Предпросмотр содержимого
                     </summary>
                     <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto max-h-32 overflow-y-auto">
                       {permissionRequest.contentPreview}
@@ -543,8 +357,8 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                       e.target.style.height = 'auto';
                       e.target.style.height = `${e.target.scrollHeight}px`;
                     }}
-                    placeholder="Enter a different option..."
-                    aria-label="Custom response"
+                    placeholder="Введите другой вариант..."
+                    aria-label="Свой ответ"
                     maxLength={10000}
                     rows={1}
                     className="w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -563,11 +377,11 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
             {permissionRequest.type === 'tool' && (
               <>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Allow {permissionRequest.toolName}?
+                  Разрешить: {permissionRequest.toolName}?
                 </p>
                 {permissionRequest.toolName && (
                   <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                    <p className="text-muted-foreground mb-1">Tool: {permissionRequest.toolName}</p>
+                    <p className="text-muted-foreground mb-1">Инструмент: {permissionRequest.toolName}</p>
                     <pre className="text-foreground">
                       {JSON.stringify(permissionRequest.toolInput, null, 2)}
                     </pre>
@@ -584,7 +398,7 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
               className="flex-1"
               data-testid="permission-deny-button"
             >
-              {permissionRequest.type === 'question' ? 'Cancel' : 'Deny'}
+              {permissionRequest.type === 'question' ? 'Отмена' : 'Запретить'}
             </Button>
             <Button
               onClick={() => handleRespond(true)}
@@ -601,11 +415,11 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
             >
               {isDeleteOperation(permissionRequest)
                 ? getDisplayFilePaths(permissionRequest).length > 1
-                  ? 'Delete All'
-                  : 'Delete'
+                  ? 'Удалить всё'
+                  : 'Удалить'
                 : permissionRequest.type === 'question'
-                  ? 'Submit'
-                  : 'Allow'}
+                  ? 'Отправить'
+                  : 'Разрешить'}
             </Button>
           </div>
         </Card>

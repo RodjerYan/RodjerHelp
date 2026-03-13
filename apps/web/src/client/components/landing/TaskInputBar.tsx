@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useEffect, type ReactNode } from 'react';
+import { useRef, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRodjerHelp, type PickedFile } from '@/lib/rodjerhelp';
-import { ArrowUp, WarningCircle } from '@phosphor-icons/react';
+import { ArrowUp, WarningCircle, Paperclip, X } from '@phosphor-icons/react';
 import { PROMPT_DEFAULT_MAX_LENGTH } from '@accomplish_ai/agent-core/common';
 import { useSpeechInput } from '@/hooks/useSpeechInput';
 import { useTypingPlaceholder } from '@/hooks/useTypingPlaceholder';
@@ -11,6 +11,29 @@ import { SpeechInputButton } from '@/components/ui/SpeechInputButton';
 import { ModelIndicator } from '@/components/ui/ModelIndicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+function reviveInputInteractivity() {
+  document.body.style.pointerEvents = '';
+  document.documentElement.style.pointerEvents = '';
+  document.body.removeAttribute('inert');
+  document.documentElement.removeAttribute('inert');
+  document.body.removeAttribute('aria-hidden');
+  document.documentElement.removeAttribute('aria-hidden');
+}
+
+function focusTextareaSafely(textarea: HTMLTextAreaElement | null, delay = 0) {
+  window.setTimeout(() => {
+    reviveInputInteractivity();
+    if (!textarea || textarea.disabled) return;
+    textarea.focus();
+    const valueLength = textarea.value?.length ?? 0;
+    try {
+      textarea.setSelectionRange(valueLength, valueLength);
+    } catch {
+      // ignore selection errors
+    }
+  }, delay);
+}
 
 interface TaskInputBarProps {
   value: string;
@@ -28,6 +51,7 @@ interface TaskInputBarProps {
   autoSubmitOnTranscription?: boolean;
   toolbarLeft?: ReactNode;
   attachments?: PickedFile[];
+  onAddAttachments?: (files: PickedFile[]) => void;
   onRemoveAttachment?: (path: string) => void;
 }
 
@@ -47,6 +71,7 @@ export function TaskInputBar({
   autoSubmitOnTranscription = true,
   toolbarLeft,
   attachments = [],
+  onAddAttachments,
   onRemoveAttachment,
 }: TaskInputBarProps) {
   const { t } = useTranslation('common');
@@ -62,7 +87,43 @@ export function TaskInputBar({
   });
   const effectivePlaceholder = typingPlaceholder && !value ? animatedPlaceholder : placeholder;
   const pendingAutoSubmitRef = useRef<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragDepthRef = useRef(0);
   const accomplish = getRodjerHelp();
+
+  const normalizeDroppedFiles = useCallback(async (fileList: FileList | null): Promise<PickedFile[]> => {
+    if (!fileList) return [];
+
+    const dropped = Array.from(fileList);
+    if (window.accomplish?.resolveDroppedChatFiles) {
+      const resolved = await window.accomplish.resolveDroppedChatFiles(dropped);
+      if (resolved.length > 0) return resolved;
+    }
+
+    const seen = new Set<string>();
+    const files: PickedFile[] = [];
+
+    for (const file of dropped) {
+      const filePath = String((file as File & { path?: string }).path || '').trim();
+      if (!filePath || seen.has(filePath)) continue;
+      seen.add(filePath);
+      files.push({
+        path: filePath,
+        name: file.name,
+        size: file.size,
+        lastModified: file.lastModified,
+      });
+    }
+
+    return files;
+  }, []);
+
+  const handleDroppedFiles = useCallback(async (fileList: FileList | null) => {
+    const droppedFiles = await normalizeDroppedFiles(fileList);
+    if (!droppedFiles.length) return;
+    onAddAttachments?.(droppedFiles);
+    focusTextareaSafely(textareaRef.current, 0);
+  }, [normalizeDroppedFiles, onAddAttachments]);
 
   const speechInput = useSpeechInput({
     onTranscriptionComplete: (text) => {
@@ -74,19 +135,42 @@ export function TaskInputBar({
       }
 
       setTimeout(() => {
+        reviveInputInteractivity();
         textareaRef.current?.focus();
       }, 0);
     },
     onError: (error) => {
-      console.error('[Speech] Error:', error.message);
+      console.error('[Речь] Ошибка:', error.message);
     },
   });
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
+      reviveInputInteractivity();
       textareaRef.current.focus();
     }
   }, [autoFocus]);
+
+  useEffect(() => {
+    const restore = () => focusTextareaSafely(textareaRef.current, 0);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        focusTextareaSafely(textareaRef.current, 30);
+      }
+    };
+
+    window.addEventListener('focus', restore);
+    window.addEventListener('pageshow', restore);
+    window.addEventListener('mouseup', restore);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', restore);
+      window.removeEventListener('pageshow', restore);
+      window.removeEventListener('mouseup', restore);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!autoSubmitOnTranscription || isInputDisabled || isOverLimit) {
@@ -140,8 +224,35 @@ export function TaskInputBar({
       )}
 
       <div
-        className="rounded-[12px] border border-border bg-popover/70 transition-all duration-200 ease-accomplish cursor-text focus-within:border-muted-foreground/40"
-        onClick={() => textareaRef.current?.focus()}
+        className={`rounded-[12px] border bg-popover/70 transition-all duration-200 ease-accomplish cursor-text focus-within:border-muted-foreground/40 ${isDragOver ? 'border-primary ring-2 ring-primary/30' : 'border-border'}`}
+        onPointerDownCapture={() => focusTextareaSafely(textareaRef.current, 0)}
+        onMouseDown={() => reviveInputInteractivity()}
+        onClick={() => { focusTextareaSafely(textareaRef.current, 0); }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepthRef.current += 1;
+          setIsDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'copy';
+          if (!isDragOver) setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepthRef.current = 0;
+          setIsDragOver(false);
+          void handleDroppedFiles(e.dataTransfer.files);
+        }}
       >
         <div className="px-4 pt-3 pb-1">
           <textarea
@@ -150,6 +261,8 @@ export function TaskInputBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => reviveInputInteractivity()}
+            onMouseDown={() => reviveInputInteractivity()}
             placeholder={effectivePlaceholder}
             disabled={isInputDisabled || speechInput.isRecording}
             rows={3}
@@ -162,25 +275,26 @@ export function TaskInputBar({
     {attachments.map((f) => (
       <div
         key={f.path}
-        className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-foreground"
+        className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-muted/55 px-3 py-1.5 text-xs text-foreground shadow-sm transition-colors hover:bg-muted/75"
         title={f.path}
       >
-        <span className="max-w-[240px] truncate">{f.name}</span>
-        <span className="text-muted-foreground/70">
-          {f.size ? `${Math.round(f.size / 1024)} KB` : ''}
+        <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="max-w-[220px] truncate font-medium">{f.name}</span>
+        <span className="shrink-0 text-muted-foreground/80">
+          {f.size ? `${Math.max(1, Math.round(f.size / 1024))} КБ` : ''}
         </span>
         {onRemoveAttachment && (
           <button
             type="button"
-            className="ml-1 text-muted-foreground hover:text-foreground"
+            className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
               onRemoveAttachment(f.path);
             }}
-            aria-label="Remove attachment"
-            title="Remove"
+            aria-label="Удалить вложение"
+            title="Удалить"
           >
-            ×
+            <X className="h-3 w-3" weight="bold" />
           </button>
         )}
       </div>
@@ -189,6 +303,10 @@ export function TaskInputBar({
 )}
 
         </div>
+
+        {isDragOver && (
+          <div className="px-4 pb-2 text-xs text-primary">Отпустите файл, чтобы прикрепить его к сообщению</div>
+        )}
 
         <div className="flex h-[36px] items-center justify-between pl-3 pr-2 mb-2">
           <div className="flex items-center">{toolbarLeft}</div>
@@ -227,7 +345,7 @@ export function TaskInputBar({
                   onClick={() => {
                     accomplish.logEvent({
                       level: 'info',
-                      message: 'Task input submit clicked',
+                      message: 'Нажата отправка ввода задачи',
                       context: { prompt: value },
                     });
                     onSubmit();

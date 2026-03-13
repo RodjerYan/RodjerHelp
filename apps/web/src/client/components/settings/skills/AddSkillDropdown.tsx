@@ -20,7 +20,7 @@ import { CreateSkillModal } from '@/components/skills/CreateSkillModal';
 
 interface AddSkillDropdownProps {
   onSkillAdded?: () => void;
-  onClose?: () => void; // Close the settings dialog
+  onClose?: () => void; // Закрыть диалог настроек
 }
 
 export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProps) {
@@ -42,14 +42,14 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
       const filePath = await window.accomplish.pickSkillFile();
       if (!filePath) {
         setIsLoading(false);
-        return; // User cancelled
+        return; // Пользователь отменил
       }
       await window.accomplish.addSkillFromFile(filePath);
       onSkillAdded?.();
     } catch (err) {
-      console.error('Failed to upload skill:', err);
-      let errorMessage = err instanceof Error ? err.message : 'Failed to upload skill';
-      // Clean up the error message - extract the actual error after "Error: "
+      console.error('Не удалось загрузить навык:', err);
+      let errorMessage = err instanceof Error ? err.message : 'Не удалось загрузить навык';
+      // Очистить сообщение об ошибке — извлечь саму ошибку после "Error: "
       const errorMatch = errorMessage.match(/Error:\s*(.+)$/);
       if (errorMatch) {
         errorMessage = errorMatch[1];
@@ -72,8 +72,8 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
       setIsGitHubDialogOpen(false);
       onSkillAdded?.();
     } catch (err) {
-      console.error('Failed to import from GitHub:', err);
-      setError(err instanceof Error ? err.message : 'Failed to import skill');
+      console.error('Не удалось импортировать из GitHub:', err);
+      setError(err instanceof Error ? err.message : 'Не удалось импортировать навык');
     } finally {
       setIsLoading(false);
     }
@@ -198,7 +198,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* GitHub Import Dialog */}
+      {/* Диалог импорта из GitHub */}
       <Dialog open={isGitHubDialogOpen} onOpenChange={handleCloseGitHubDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -230,7 +230,7 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
         </DialogContent>
       </Dialog>
 
-      {/* Upload Error Dialog */}
+      {/* Диалог ошибки загрузки */}
       <Dialog open={isUploadErrorDialogOpen} onOpenChange={setIsUploadErrorDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <div className="flex items-start gap-4">
@@ -285,12 +285,12 @@ export function AddSkillDropdown({ onSkillAdded, onClose }: AddSkillDropdownProp
           <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-x-auto text-muted-foreground">
             {`---
 name: my-skill
-description: What this skill does
+ description: Что делает этот навык
 ---
 
-# My Skill
+# Мой навык
 
-Instructions here...`}
+Инструкции здесь...`}
           </pre>
 
           <DialogFooter className="mt-4">

@@ -1,0 +1,67 @@
+name: GitHub Release (Windows Auto Update)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-windows:
+    runs-on: windows-latest
+    env:
+      npm_config_script_shell: pwsh.exe
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Verify tag matches desktop version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $tag = $env:GITHUB_REF.Replace('refs/tags/v', '')
+            $pkgVersion = node -p "require('./apps/desktop/package.json').version"
+            if ($tag -ne $pkgVersion) {
+              throw "Tag version v$tag does not match apps/desktop/package.json version $pkgVersion"
+            }
+          }
+
+      - name: Build Windows package
+        run: pnpm -F @accomplish/desktop package:win
+
+      - name: Ensure release assets exist
+        shell: pwsh
+        run: |
+          Get-ChildItem .\apps\desktop\release
+          if (-not (Test-Path .\apps\desktop\release\latest.yml)) {
+            throw "latest.yml not found in apps/desktop/release"
+          }
+
+      - name: Publish GitHub Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.blockmap
+          draft: false
+          prerelease: false
+          generate_release_notes: true

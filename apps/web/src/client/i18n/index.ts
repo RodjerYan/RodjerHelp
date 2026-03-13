@@ -1,14 +1,14 @@
 /**
- * Web i18n Configuration (Self-Contained)
+ * Конфигурация i18n для веб‑версии (самодостаточная)
  *
- * All translations are bundled as static imports. Language preference is
- * persisted in localStorage. No IPC or main-process dependency.
+ * Все переводы подключаются как статические импорты. Предпочтение языка
+ * хранится в localStorage. Нет зависимости от IPC или основного процесса.
  */
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-// Static Russian locale imports (single-language build)
+// Статические импорты русской локали (сборка с одним языком)
 import ruCommon from '@locales/ru/common.json';
 import ruHome from '@locales/ru/home.json';
 import ruSettings from '@locales/ru/settings.json';
@@ -17,7 +17,7 @@ import ruHistory from '@locales/ru/history.json';
 import ruErrors from '@locales/ru/errors.json';
 import ruSidebar from '@locales/ru/sidebar.json';
 
-// Supported languages and namespaces
+// Поддерживаемые языки и пространства имён
 export const SUPPORTED_LANGUAGES = ['ru'] as const;
 export const NAMESPACES = [
   'common',
@@ -32,11 +32,11 @@ export const NAMESPACES = [
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export type Namespace = (typeof NAMESPACES)[number];
 
-// Kept for backward compatibility with existing code paths.
-// This build is RU-only and does not persist language preference.
+// Оставлено для обратной совместимости с существующими путями кода.
+// Эта сборка только на RU и не сохраняет предпочтение языка.
 export const LANGUAGE_STORAGE_KEY = 'rodjerhelp-language';
 
-// Flag to track initialization
+// Флаг для отслеживания инициализации
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
@@ -48,15 +48,15 @@ function updateDocumentDirection(language: string): void {
 }
 
 /**
- * Read the stored language preference from localStorage.
- * Returns the concrete language to use (resolves 'auto' via navigator).
+ * Читает сохранённое предпочтение языка из localStorage.
+ * Возвращает конкретный язык (разрешает 'auto' через navigator).
  */
 function resolveStoredLanguage(): SupportedLanguage {
   return 'ru';
 }
 
 /**
- * Initialize i18n with bundled translations
+ * Инициализация i18n со встроенными переводами
  */
 export async function initI18n(): Promise<void> {
   if (isInitialized) {
@@ -92,7 +92,7 @@ export async function initI18n(): Promise<void> {
           escapeValue: false,
         },
 
-        // No language detection/persistence in RU-only build.
+        // В RU‑only сборке нет определения/сохранения языка.
 
         debug: process.env.NODE_ENV === 'development',
 
@@ -105,23 +105,23 @@ export async function initI18n(): Promise<void> {
 
     updateDocumentDirection(initialLanguage);
     isInitialized = true;
-    console.log(`[i18n] Initialized with language: ${initialLanguage}`);
+    console.log(`[i18n] Инициализировано с языком: ${initialLanguage}`);
   })();
 
   return initializationPromise;
 }
 
 /**
- * Change language and persist to localStorage
+ * Сменить язык и сохранить в localStorage
  */
 export async function changeLanguage(_language: 'ru' | 'auto' = 'ru'): Promise<void> {
-  // RU-only build: language switching is intentionally disabled.
+  // RU‑only сборка: переключение языка намеренно отключено.
   await i18n.changeLanguage('ru');
   updateDocumentDirection('ru');
 }
 
 /**
- * Get the current language preference from localStorage
+ * Получить текущее предпочтение языка из localStorage
  */
 export function getLanguagePreference(): 'ru' {
   return 'ru';

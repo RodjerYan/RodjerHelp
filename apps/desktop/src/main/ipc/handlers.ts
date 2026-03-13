@@ -73,6 +73,8 @@ import {
   transcribeAudio,
   isElevenLabsConfigured,
 } from '../services/speechToText';
+
+
 import type {
   TaskConfig,
   PermissionResponse,
@@ -99,6 +101,8 @@ import {
 } from '../test-utils/mock-task-flow';
 import { skillsManager } from '../skills';
 import { registerVertexHandlers } from '../providers';
+
+let lastPickedChatFiles: Array<{ path: string; name: string; size: number; lastModified: number }> = [];
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
 
@@ -324,7 +328,7 @@ export function registerIPCHandlers(): void {
 
       const taskId = validatedExistingTaskId || createTaskId();
 
-      if (validatedExistingTaskId) {
+      if (validatedExistingTaskId && validatedPrompt.trim().length > 0) {
         const userMessage: TaskMessage = {
           id: createMessageId(),
           type: 'user',
@@ -356,6 +360,16 @@ export function registerIPCHandlers(): void {
 
       if (validatedExistingTaskId) {
         storage.updateTaskStatus(validatedExistingTaskId, task.status, new Date().toISOString());
+        storage.updateTaskSessionId(validatedExistingTaskId, validatedSessionId);
+        const existingTask = storage.getTask(validatedExistingTaskId);
+        if (existingTask) {
+          return {
+            ...existingTask,
+            status: task.status,
+            sessionId: validatedSessionId,
+            updatedAt: new Date().toISOString(),
+          };
+        }
       }
 
       return task;
@@ -1205,7 +1219,7 @@ handle('chat:pick-files', async () => {
   if (result.canceled || result.filePaths.length === 0) {
     return [];
   }
-  return result.filePaths.map((filePath) => {
+  lastPickedChatFiles = result.filePaths.map((filePath) => {
     try {
       const stat = fs.statSync(filePath);
       return {
@@ -1220,6 +1234,52 @@ handle('chat:pick-files', async () => {
         name: path.basename(filePath),
         size: 0,
         lastModified: Date.now(),
+      };
+    }
+  });
+  return lastPickedChatFiles;
+});
+
+handle('chat:last-picked-files', async () => {
+  return lastPickedChatFiles.map((file) => file.path).filter(Boolean);
+});
+
+handle('chat:read-files', async (_event, paths: string[]) => {
+  const maxBytes = 128 * 1024;
+  const safePaths = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string' && p.trim().length > 0) : [];
+
+  return safePaths.map((filePath) => {
+    try {
+      const stat = fs.statSync(filePath);
+      const buffer = fs.readFileSync(filePath);
+      const sample = buffer.subarray(0, Math.min(buffer.length, 4096));
+      const isBinary = sample.includes(0);
+
+      if (isBinary) {
+        return {
+          path: filePath,
+          name: path.basename(filePath),
+          size: stat.size,
+          error: 'Binary file preview is not supported',
+        };
+      }
+
+      const truncated = buffer.length > maxBytes;
+      const text = buffer.subarray(0, maxBytes).toString('utf8');
+
+      return {
+        path: filePath,
+        name: path.basename(filePath),
+        size: stat.size,
+        truncated,
+        text,
+      };
+    } catch (error) {
+      return {
+        path: filePath,
+        name: path.basename(filePath),
+        size: 0,
+        error: error instanceof Error ? error.message : 'Failed to read file',
       };
     }
   });

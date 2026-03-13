@@ -36,12 +36,12 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, onAttachFiles, disable
       window.accomplish
         .getEnabledSkills()
         .then((skills) => setSkills(skills.filter((s) => !s.isHidden)))
-        .catch((err) => console.error('Failed to load skills:', err));
+        .catch((err) => console.error('Не удалось загрузить навыки:', err));
 
       window.accomplish
         .getConnectors()
         .then(setConnectors)
-        .catch((err) => console.error('Failed to load connectors:', err));
+        .catch((err) => console.error('Не удалось загрузить коннекторы:', err));
     }
   }, [open]);
 
@@ -56,7 +56,7 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, onAttachFiles, disable
       ]);
       setSkills(updatedSkills.filter((s) => !s.isHidden));
     } catch (err) {
-      console.error('Failed to refresh skills:', err);
+      console.error('Не удалось обновить навыки:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -83,7 +83,7 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, onAttachFiles, disable
       await window.accomplish.setConnectorEnabled(id, enabled);
       setConnectors((prev) => prev.map((c) => (c.id === id ? { ...c, isEnabled: enabled } : c)));
     } catch (err) {
-      console.error('Failed to toggle connector:', err);
+      console.error('Не удалось переключить коннектор:', err);
     }
   }, []);
 
@@ -107,7 +107,7 @@ export function PlusMenu({ onSkillSelect, onOpenSettings, onAttachFiles, disable
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[200px]">
           <DropdownMenuItem
-            onSelect={async (e) => {
+            onSelect={async (e: Event) => {
               e.preventDefault();
               if (disabled) return;
               try {

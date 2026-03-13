@@ -71,7 +71,7 @@ export function ToolProgress({
               startupStage?.isFirstTask &&
               startupStage.stage === 'browser' && (
                 <span className="text-xs text-muted-foreground/50 ml-6">
-                  First task takes a bit longer...
+                  Первая задача может занять чуть больше времени...
                 </span>
               )}
           </motion.div>

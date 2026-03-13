@@ -10,35 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import rodjerHelpFavicon from '/assets/rodjerhelp-favicon.png';
-
-// UI-level RU overrides for built-in skills (source metadata is English)
-const RU_SKILL_OVERRIDES: Record<string, { title: string; description: string }> = {
-  'code-review': {
-    title: 'Проверка кода',
-    description:
-      'Проверяет код на ошибки, проблемы безопасности и производительности. Даёт конкретные рекомендации по исправлению.',
-  },
-  'download-file': {
-    title: 'Скачать файл',
-    description:
-      'Скачивает файлы в Chrome на Windows и macOS: запускает загрузку, отслеживает прогресс и помогает при сбоях.',
-  },
-  'git-commit': {
-    title: 'Git commit',
-    description:
-      'Готовит сообщения коммитов по convention, подсказывает staging и помогает соблюдать лучшие практики Git.',
-  },
-  'google-sheets': {
-    title: 'Google Sheets',
-    description:
-      'Автоматизирует работу с Google Sheets через браузер: создаёт таблицы, вводит данные, применяет форматирование.',
-  },
-  'web-research': {
-    title: 'Веб‑исследование',
-    description:
-      'Ищет информацию в интернете по нескольким источникам и делает краткую сводку с ключевыми выводами.',
-  },
-};
+import { localizeSkillForRu } from '@/lib/skillLocalization';
 
 interface SkillCardProps {
   skill: Skill;
@@ -73,9 +45,9 @@ export const SkillCard = memo(function SkillCard({
 
   const { t } = useTranslation('settings');
 
-  const override = RU_SKILL_OVERRIDES[skill.id];
-  const displayName = override?.title ?? skill.name;
-  const displayDescription = override?.description ?? skill.description;
+  const localized = localizeSkillForRu(skill);
+  const displayName = localized.name;
+  const displayDescription = localized.description;
 
   const formattedDate = new Date(skill.updatedAt).toLocaleDateString('ru-RU', {
     year: 'numeric',

@@ -1,4 +1,4 @@
-// apps/desktop/src/renderer/components/settings/hooks/useProviderSettings.ts
+// apps/desktop/src/renderer/components/settings/hooks/useProviderSettings.ts (оригинал)
 
 import { useState, useEffect, useCallback } from 'react';
 import { getRodjerHelp } from '@/lib/rodjerhelp';
@@ -20,7 +20,7 @@ export function useProviderSettings() {
       setSettings(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить настройки');
     } finally {
       setLoading(false);
     }

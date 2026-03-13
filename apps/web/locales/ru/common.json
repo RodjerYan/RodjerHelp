@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Rodjer Help",
-    "byline": "By RodjerYan"
+    "name": "Роджер Хелп",
+    "byline": "от RodjerYan"
   },
   "buttons": {
     "send": "Отправить",
@@ -70,7 +70,7 @@
     "localApiKey": "Локальный API‑ключ",
     "azureFoundryEntraId": "Azure Foundry (Entra ID)",
     "bedrockApiKey": "API‑ключ Bedrock",
-    "awsAccessKeys": "AWS Access Keys",
+    "awsAccessKeys": "Ключи доступа AWS",
     "awsProfile": "Профиль AWS: {{name}}"
   },
   "contextMenu": {

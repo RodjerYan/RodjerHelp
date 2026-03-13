@@ -273,9 +273,9 @@ describe('Plan message formatting', () => {
       skills: [],
     };
 
-    const planText = `**Plan:**\n\n**Goal:** ${input.goal}\n\n**Steps:**\n${input.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+    const planText = `**План:**\n\n**Цель:** ${input.goal}\n\n**Шаги:**\n${input.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
 
-    expect(planText).toContain('**Plan:**');
+    expect(planText).toContain('**План:**');
     expect(planText).toContain('Build a login form');
     expect(planText).toContain('1. Create HTML structure');
     expect(planText).toContain('2. Add CSS styling');
@@ -284,17 +284,17 @@ describe('Plan message formatting', () => {
 
   it('should include verification section if present', () => {
     const verification = ['Check form validates', 'Ensure submission works'];
-    const verificationSection = `\n\n**Verification:**\n${verification.map((v, i) => `${i + 1}. ${v}`).join('\n')}`;
+    const verificationSection = `\n\n**Проверка:**\n${verification.map((v, i) => `${i + 1}. ${v}`).join('\n')}`;
 
-    expect(verificationSection).toContain('**Verification:**');
+    expect(verificationSection).toContain('**Проверка:**');
     expect(verificationSection).toContain('1. Check form validates');
   });
 
   it('should include skills section if present', () => {
     const skills = ['frontend-design', 'form-validation'];
-    const skillsSection = `\n\n**Skills:** ${skills.join(', ')}`;
+    const skillsSection = `\n\n**Навыки:** ${skills.join(', ')}`;
 
-    expect(skillsSection).toContain('**Skills:**');
+    expect(skillsSection).toContain('**Навыки:**');
     expect(skillsSection).toContain('frontend-design, form-validation');
   });
 });

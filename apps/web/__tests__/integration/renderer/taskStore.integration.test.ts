@@ -430,6 +430,33 @@ describe('taskStore Integration', () => {
       expect(state.currentTask?.status).toBe('failed');
       expect(state.isLoading).toBe(false);
     });
+
+
+    it('should preserve sessionId when an error update arrives', async () => {
+      // Arrange
+      const { useTaskStore } = await import('@/stores/taskStore');
+      const runningTask: Task = {
+        ...createMockTask('task-123', 'Test', 'running'),
+        sessionId: 'session-abc',
+      };
+
+      useTaskStore.setState({ currentTask: runningTask, tasks: [runningTask] });
+
+      // Act
+      useTaskStore.getState().addTaskUpdate({
+        taskId: 'task-123',
+        type: 'error',
+        error: 'Task failed',
+        sessionId: 'session-abc',
+      });
+      const state = useTaskStore.getState();
+
+      // Assert
+      expect(state.currentTask?.status).toBe('failed');
+      expect(state.currentTask?.sessionId).toBe('session-abc');
+      expect(state.currentTask?.result?.sessionId).toBe('session-abc');
+      expect(state.tasks[0]?.sessionId).toBe('session-abc');
+    });
   });
 
   describe('cancelTask', () => {

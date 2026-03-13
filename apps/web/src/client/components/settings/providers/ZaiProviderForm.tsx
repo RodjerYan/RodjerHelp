@@ -161,7 +161,7 @@ export function ZaiProviderForm({
               transition={settingsTransitions.enter}
               className="space-y-3"
             >
-              {/* Region Selector */}
+              {/* Выбор региона */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-foreground">
                   {t('zai.region')}

@@ -96,4 +96,5 @@ export interface TaskUpdateEvent {
   progress?: TaskProgress;
   result?: TaskResult;
   error?: string;
+  sessionId?: string;
 }

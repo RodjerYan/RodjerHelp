@@ -175,7 +175,7 @@ function SelectLoading({ label, loadingMessage }: { label: string; loadingMessag
           />
         </svg>
         <span className="text-sm text-muted-foreground">
-          {loadingMessage || `Loading ${label.toLowerCase()}...`}
+          {loadingMessage || `Загрузка: ${label.toLowerCase()}...`}
         </span>
       </div>
     </div>
@@ -202,9 +202,9 @@ export function SearchableSelect({
   value,
   onChange,
   label,
-  placeholder = 'Select...',
-  searchPlaceholder = 'Search...',
-  emptyMessage = 'No items found',
+  placeholder = 'Выберите...',
+  searchPlaceholder = 'Поиск...',
+  emptyMessage = 'Ничего не найдено',
   loading,
   loadingMessage,
   error,

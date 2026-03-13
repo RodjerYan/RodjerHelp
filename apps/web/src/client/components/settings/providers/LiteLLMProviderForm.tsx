@@ -210,7 +210,7 @@ export function LiteLLMProviderForm({
 
               <ConnectedControls onDisconnect={onDisconnect} />
 
-              {/* Model Selector */}
+              {/* Выбор модели */}
               <ModelSelector
                 models={models}
                 value={connectedProvider?.selectedModelId || null}

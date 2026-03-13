@@ -142,11 +142,11 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
       >
         <div className="flex items-center gap-2 text-sm text-zinc-400">
           <Bug className="h-4 w-4" />
-          <span className="font-medium">Debug Logs</span>
+          <span className="font-medium">Логи отладки</span>
           {debugLogs.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-zinc-300 text-xs">
               {debugSearchQuery.trim() && filteredDebugLogs.length !== debugLogs.length
-                ? `${filteredDebugLogs.length} of ${debugLogs.length}`
+                ? `${filteredDebugLogs.length} из ${debugLogs.length}`
                 : debugLogs.length}
             </span>
           )}
@@ -164,11 +164,11 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
                 }}
               >
                 {debugExported ? (
-                  <Check className="h-3 w-3 mr-1 text-green-400" />
+                  <Check className="h-3 w-3 mr-1 text-blue-400" />
                 ) : (
                   <Download className="h-3 w-3 mr-1" />
                 )}
-                {debugExported ? 'Exported' : 'Export'}
+                {debugExported ? 'Экспортировано' : 'Экспорт'}
               </Button>
               <Button
                 variant="ghost"
@@ -180,7 +180,7 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
                 }}
               >
                 <Trash className="h-3 w-3 mr-1" />
-                Clear
+                Очистить
               </Button>
             </>
           )}
@@ -205,7 +205,7 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
               <div className="flex items-center justify-end gap-2 p-2 border-b border-zinc-800 shrink-0">
                 {debugSearchQuery.trim() && filteredDebugLogs.length > 0 && (
                   <span className="text-xs text-zinc-500">
-                    {debugSearchIndex + 1} of {filteredDebugLogs.length}
+                    {debugSearchIndex + 1} из {filteredDebugLogs.length}
                   </span>
                 )}
                 {debugSearchQuery.trim() && filteredDebugLogs.length > 0 && (
@@ -213,14 +213,14 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
                     <button
                       onClick={goToPrevMatch}
                       className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-l border border-zinc-700 border-r-0"
-                      title="Previous match (Shift+Enter)"
+                      title="Предыдущее совпадение (Shift+Enter)"
                     >
                       <CaretUp className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={goToNextMatch}
                       className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 rounded-r border border-zinc-700"
-                      title="Next match (Enter)"
+                      title="Следующее совпадение (Enter)"
                     >
                       <CaretDown className="h-3.5 w-3.5" />
                     </button>
@@ -243,7 +243,7 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
                         }
                       }
                     }}
-                    placeholder="Search logs... (⌘F)"
+                    placeholder="Поиск по логам... (Ctrl+F)"
                     className="h-7 w-52 pl-7 pr-2 text-xs bg-zinc-800 border border-zinc-700 rounded text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500"
                     data-testid="debug-search-input"
                   />
@@ -255,11 +255,11 @@ export function DebugPanel({ debugLogs, taskId, onClearLogs }: DebugPanelProps) 
               >
                 {debugLogs.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-zinc-500">
-                    No debug logs yet. Run a task to see logs.
+                    Пока нет отладочных логов. Запустите задачу, чтобы увидеть их.
                   </div>
                 ) : filteredDebugLogs.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-zinc-500">
-                    No logs match your search
+                    По вашему запросу ничего не найдено
                   </div>
                 ) : (
                   <div className="space-y-1">

@@ -22,10 +22,10 @@ export function TaskLauncher() {
   const accomplish = getRodjerHelp();
   const [openedAt, setOpenedAt] = useState(Date.now);
 
-  // Filter tasks by search query (title only)
+  // Фильтруем задачи по поисковому запросу (только заголовок)
   const filteredTasks = useMemo(() => {
     if (!searchQuery.trim()) {
-      // Show last 7 days when no search
+      // Показываем последние 7 дней, если поиска нет
       const sevenDaysAgo = openedAt - 7 * 24 * 60 * 60 * 1000;
       return tasks.filter((t) => new Date(t.createdAt).getTime() > sevenDaysAgo);
     }
@@ -33,16 +33,16 @@ export function TaskLauncher() {
     return tasks.filter((t) => t.prompt.toLowerCase().includes(query));
   }, [tasks, searchQuery, openedAt]);
 
-  // Total items: "New task" + filtered tasks
+  // Всего элементов: "Новая задача" + отфильтрованные
   const totalItems = 1 + filteredTasks.length;
 
-  // Clamp selected index when results change
+  // Ограничиваем выбранный индекс при изменении результатов
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync derived state from prop change
     setSelectedIndex((i) => Math.min(i, Math.max(0, totalItems - 1)));
   }, [totalItems]);
 
-  // Reset state when launcher opens, use initial prompt if provided
+  // Сбрасываем состояние при открытии, используем стартовый промпт если есть
   useEffect(() => {
     if (isLauncherOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset state on open
@@ -66,12 +66,12 @@ export function TaskLauncher() {
   const handleSelect = useCallback(
     async (index: number) => {
       if (index === 0) {
-        // "New task" selected
+        // Выбрана "Новая задача"
         if (searchQuery.trim()) {
-          // Check if any provider is ready before starting task
+          // Проверяем, есть ли готовый провайдер перед стартом задачи
           const settings = await accomplish.getProviderSettings();
           if (!hasAnyReadyProvider(settings)) {
-            // No ready provider - navigate to home which will show settings
+            // Нет готового провайдера — переходим на главную, где откроются настройки
             closeLauncher();
             navigate('/');
             return;
@@ -83,12 +83,12 @@ export function TaskLauncher() {
             navigate(`/execution/${task.id}`);
           }
         } else {
-          // Navigate to home for empty input
+          // Переходим на главную при пустом вводе
           closeLauncher();
           navigate('/');
         }
       } else {
-        // Task selected - navigate to it
+        // Выбрана задача — переходим к ней
         const task = filteredTasks[index - 1];
         if (task) {
           closeLauncher();
@@ -101,7 +101,7 @@ export function TaskLauncher() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Ignore Enter during IME composition (Chinese/Japanese input)
+      // Игнорируем Enter во время IME‑ввода (китайский/японский)
       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       switch (e.key) {
         case 'ArrowDown':
@@ -147,7 +147,7 @@ export function TaskLauncher() {
               aria-describedby={undefined}
               onKeyDown={handleKeyDown}
             >
-              <DialogPrimitive.Title className="sr-only">Task Launcher</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="sr-only">Запуск задач</DialogPrimitive.Title>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: -10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -155,7 +155,7 @@ export function TaskLauncher() {
                 transition={springs.bouncy}
                 className="w-full max-w-lg bg-card border border-border rounded-lg shadow-2xl overflow-hidden"
               >
-                {/* Search Input */}
+                {/* Поле поиска */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                   <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
@@ -175,9 +175,9 @@ export function TaskLauncher() {
                   </DialogPrimitive.Close>
                 </div>
 
-                {/* Results */}
+                {/* Результаты */}
                 <div className="max-h-80 overflow-y-auto p-2">
-                  {/* New Task Option */}
+                  {/* Вариант новой задачи */}
                   <button
                     onClick={() => handleSelect(0)}
                     className={cn(
@@ -204,7 +204,7 @@ export function TaskLauncher() {
                     )}
                   </button>
 
-                  {/* Task List */}
+                  {/* Список задач */}
                   {filteredTasks.length > 0 && (
                     <>
                       <div className="px-3 py-2 text-xs font-medium text-muted-foreground">

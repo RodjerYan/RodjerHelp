@@ -26,7 +26,7 @@ const TABS = [
   { id: 'about' as const, labelKey: 'tabs.about', icon: Info },
 ];
 
-// First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
+// Первые 4 провайдера в свернутом виде (соответствует PROVIDER_ORDER в ProviderGrid)
 const FIRST_FOUR_PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'google', 'bedrock'];
 
 interface SettingsDialogProps {
@@ -34,9 +34,9 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   onApiKeySaved?: () => void;
   initialProvider?: ProviderId;
-  /**
-   * Initial tab to show when dialog opens ('providers' or 'voice')
-   */
+   /**
+    * Вкладка, которую показывать при открытии диалога ('providers' или 'voice')
+    */
   initialTab?: 'providers' | 'voice' | 'skills' | 'connectors' | 'about';
 }
 
@@ -68,21 +68,21 @@ export function SettingsDialog({
     refetch,
   } = useProviderSettings();
 
-  // Debug mode state - stored in appSettings, not providerSettings
+  // Состояние режима отладки — хранится в appSettings, а не в providerSettings
   const [debugMode, setDebugModeState] = useState(false);
   const accomplish = getRodjerHelp();
 
-  // Refetch settings and debug mode when dialog opens
+  // Перезагружаем настройки и режим отладки при открытии диалога
   useEffect(() => {
     if (!open) return;
     refetch();
-    // Load debug mode from appSettings (correct store)
+    // Загружаем режим отладки из appSettings (правильное хранилище)
     accomplish.getDebugMode().then(setDebugModeState);
-    // Load app version
+    // Загружаем версию приложения
     accomplish.getVersion().then(setAppVersion);
   }, [open, refetch, accomplish]);
 
-  // Reset/initialize state when dialog opens or closes
+  // Сбрасываем/инициализируем состояние при открытии или закрытии диалога
   useEffect(() => {
     if (!open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset on close
@@ -95,7 +95,22 @@ export function SettingsDialog({
     }
   }, [open, initialTab]);
 
-  // Auto-select active provider (or initialProvider) and expand grid if needed when dialog opens
+  useEffect(() => {
+    if (open) return;
+
+    const timer = window.setTimeout(() => {
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
+      document.body.removeAttribute('inert');
+      document.documentElement.removeAttribute('inert');
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+
+
+  // Автовыбор активного провайдера (или initialProvider) и раскрытие сетки при открытии
   useEffect(() => {
     if (!open || loading) return;
 
@@ -110,13 +125,13 @@ export function SettingsDialog({
     }
   }, [open, loading, initialProvider, settings?.activeProviderId]);
 
-  // Handle close attempt
+  // Обрабатываем попытку закрытия
   const handleOpenChange = useCallback(
     (newOpen: boolean) => {
       if (!newOpen && settings) {
-        // Check if user is trying to close
+        // Проверяем, пытается ли пользователь закрыть
         if (!hasAnyReadyProvider(settings)) {
-          // No ready provider - show warning
+          // Нет готового провайдера — показываем предупреждение
           setCloseWarning(true);
           return;
         }
@@ -127,14 +142,14 @@ export function SettingsDialog({
     [settings, onOpenChange],
   );
 
-  // Handle provider selection
+  // Обрабатываем выбор провайдера
   const handleSelectProvider = useCallback(
     async (providerId: ProviderId) => {
       setSelectedProvider(providerId);
       setCloseWarning(false);
       setShowModelError(false);
 
-      // Auto-set as active if the selected provider is ready
+      // Автоактивация, если выбранный провайдер готов
       const provider = settings?.connectedProviders?.[providerId];
       if (provider && isProviderReady(provider)) {
         await setActiveProvider(providerId);
@@ -143,14 +158,14 @@ export function SettingsDialog({
     [settings?.connectedProviders, setActiveProvider],
   );
 
-  // Handle provider connection
+  // Обрабатываем подключение провайдера
   const handleConnect = useCallback(
     async (provider: ConnectedProvider) => {
       await connectProvider(provider.providerId, provider);
 
-      // Auto-set as active if the new provider is ready (connected + has model selected)
-      // This ensures newly connected ready providers become active, regardless of
-      // whether another provider was already active
+      // Автоактивация, если новый провайдер готов (подключён + выбрана модель)
+      // Это гарантирует, что только что подключённый готовый провайдер станет активным,
+      // независимо от того, был ли активен другой провайдер
       if (isProviderReady(provider)) {
         await setActiveProvider(provider.providerId);
         onApiKeySaved?.();
@@ -159,14 +174,14 @@ export function SettingsDialog({
     [connectProvider, setActiveProvider, onApiKeySaved],
   );
 
-  // Handle provider disconnection
+  // Обрабатываем отключение провайдера
   const handleDisconnect = useCallback(async () => {
     if (!selectedProvider) return;
     const wasActiveProvider = settings?.activeProviderId === selectedProvider;
     await disconnectProvider(selectedProvider);
     setSelectedProvider(null);
 
-    // If we just removed the active provider, auto-select another ready provider
+    // Если удалили активного провайдера, автоматически выбираем другого готового
     if (wasActiveProvider && settings?.connectedProviders) {
       const readyProviderId = Object.keys(settings.connectedProviders).find(
         (id) =>
@@ -178,13 +193,13 @@ export function SettingsDialog({
     }
   }, [selectedProvider, disconnectProvider, settings, setActiveProvider]);
 
-  // Handle model change
+  // Обрабатываем смену модели
   const handleModelChange = useCallback(
     async (modelId: string) => {
       if (!selectedProvider) return;
       await updateModel(selectedProvider, modelId);
 
-      // Auto-set as active if this provider is now ready
+      // Автоактивация, если провайдер теперь готов
       const provider = settings?.connectedProviders[selectedProvider];
       if (provider && isProviderReady({ ...provider, selectedModelId: modelId })) {
         if (!settings?.activeProviderId || settings.activeProviderId !== selectedProvider) {
@@ -198,18 +213,18 @@ export function SettingsDialog({
     [selectedProvider, updateModel, settings, setActiveProvider, onApiKeySaved],
   );
 
-  // Handle debug mode toggle - writes to appSettings (correct store)
+  // Обрабатываем переключение режима отладки — пишет в appSettings (правильное хранилище)
   const handleDebugToggle = useCallback(async () => {
     const newValue = !debugMode;
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
   }, [debugMode, accomplish]);
 
-  // Handle done button (close with validation)
+  // Обрабатываем кнопку "Готово" (закрытие с валидацией)
   const handleDone = useCallback(() => {
     if (!settings) return;
 
-    // Check if selected provider needs a model
+    // Проверяем, нужна ли модель выбранному провайдеру
     if (selectedProvider) {
       const provider = settings.connectedProviders[selectedProvider];
       if (provider?.connectionStatus === 'connected' && !provider.selectedModelId) {
@@ -218,19 +233,19 @@ export function SettingsDialog({
       }
     }
 
-    // Check if any provider is ready
+    // Проверяем, есть ли готовый провайдер
     if (!hasAnyReadyProvider(settings)) {
       setActiveTab('providers'); // Switch to providers tab to show warning
       setCloseWarning(true);
       return;
     }
 
-    // Validate active provider is still connected and ready
-    // This handles the case where the active provider was removed
+    // Проверяем, что активный провайдер всё ещё подключён и готов
+    // Это покрывает случай, когда активный провайдер был удалён
     if (settings.activeProviderId) {
       const activeProvider = settings.connectedProviders[settings.activeProviderId];
       if (!isProviderReady(activeProvider)) {
-        // Active provider is no longer ready - find a ready provider to set as active
+        // Активный провайдер больше не готов — ищем готовый, чтобы сделать активным
         const readyProviderId = Object.keys(settings.connectedProviders).find((id) =>
           isProviderReady(settings.connectedProviders[id as ProviderId]),
         ) as ProviderId | undefined;
@@ -239,7 +254,7 @@ export function SettingsDialog({
         }
       }
     } else {
-      // No active provider set - auto-select first ready provider
+      // Активный провайдер не выбран — автоматически выбираем первого готового
       const readyProviderId = Object.keys(settings.connectedProviders).find((id) =>
         isProviderReady(settings.connectedProviders[id as ProviderId]),
       ) as ProviderId | undefined;
@@ -251,7 +266,7 @@ export function SettingsDialog({
     onOpenChange(false);
   }, [settings, selectedProvider, onOpenChange, setActiveProvider]);
 
-  // Force close (dismiss warning)
+  // Принудительное закрытие (скрыть предупреждение)
   const handleForceClose = useCallback(() => {
     setCloseWarning(false);
     onOpenChange(false);
@@ -263,7 +278,8 @@ export function SettingsDialog({
         <DialogContent
           className="max-w-4xl w-full h-[80vh] flex flex-col overflow-hidden p-0"
           data-testid="settings-dialog"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e: Event) => e.preventDefault()}
+          onCloseAutoFocus={(e: Event) => e.preventDefault()}
         >
           <DialogHeader className="sr-only">
             <DialogTitle>{t('title')}</DialogTitle>
@@ -281,13 +297,14 @@ export function SettingsDialog({
       <DialogContent
         className="max-w-4xl w-full h-[65vh] flex overflow-hidden p-0"
         data-testid="settings-dialog"
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e: Event) => e.preventDefault()}
+        onCloseAutoFocus={(e: Event) => e.preventDefault()}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
 
-        {/* Left sidebar navigation */}
+        {/* Навигация в левой панели */}
         <nav className="w-48 shrink-0 border-r border-border bg-muted/30 p-3 flex flex-col gap-1">
           <div className="px-3 py-2 mb-1">
             <div className="flex items-center gap-2">
@@ -315,9 +332,9 @@ export function SettingsDialog({
           ))}
         </nav>
 
-        {/* Right content area */}
+        {/* Правая область контента */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Content header with title + optional actions */}
+          {/* Заголовок контента с названием и действиями */}
           <div className="flex items-center justify-between px-6 pt-5 pb-3">
             <h3 className="text-sm font-semibold text-foreground">
               {TABS.find((tab) => tab.id === activeTab)?.labelKey &&
@@ -325,10 +342,10 @@ export function SettingsDialog({
             </h3>
           </div>
 
-          {/* Scrollable content */}
+          {/* Прокручиваемый контент */}
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <div className="space-y-6">
-              {/* Close Warning */}
+              {/* Предупреждение о закрытии */}
               <AnimatePresence>
                 {closeWarning && (
                   <motion.div
@@ -374,7 +391,7 @@ export function SettingsDialog({
                 )}
               </AnimatePresence>
 
-              {/* Providers Tab */}
+              {/* Вкладка провайдеров */}
               {activeTab === 'providers' && (
                 <div className="space-y-6">
                   <section>
@@ -425,31 +442,31 @@ export function SettingsDialog({
                 </div>
               )}
 
-              {/* Skills Tab */}
+              {/* Вкладка навыков */}
               {activeTab === 'skills' && (
                 <div className="space-y-4">
                   <SkillsPanel refreshTrigger={skillsRefreshTrigger} />
                 </div>
               )}
 
-              {/* Connectors Tab */}
+              {/* Вкладка коннекторов */}
               {activeTab === 'connectors' && (
                 <div className="space-y-6">
                   <ConnectorsPanel />
                 </div>
               )}
 
-              {/* Voice Input Tab */}
+              {/* Вкладка голосового ввода */}
               {activeTab === 'voice' && (
                 <div className="space-y-6">
                   <SpeechSettingsForm />
                 </div>
               )}
 
-              {/* About Tab */}
+              {/* Вкладка о приложении */}
               {activeTab === 'about' && <AboutTab appVersion={appVersion} />}
 
-              {/* Footer: Add (skills only) + Done */}
+              {/* Подвал: добавить (только навыки) + Готово */}
               <div className="mt-4 flex items-center justify-between">
                 <div>
                   {activeTab === 'skills' && (

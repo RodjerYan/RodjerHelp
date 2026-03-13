@@ -10,7 +10,7 @@ initTheme();
 
 const container = document.getElementById('root');
 if (!container) {
-  throw new Error('Root element not found');
+  throw new Error('Корневой элемент не найден');
 }
 
 const root = createRoot(container);

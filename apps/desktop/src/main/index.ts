@@ -36,6 +36,7 @@ import {
 import { getApiKey, clearSecureStorage } from './store/secureStorage';
 import { initializeLogCollector, shutdownLogCollector, getLogCollector } from './logging';
 import { skillsManager } from './skills';
+import { initializeAutoUpdater, registerUpdaterIpc, triggerUpdateCheck } from './updater';
 
 if (process.argv.includes('--e2e-skip-auth')) {
   (global as Record<string, unknown>).E2E_SKIP_AUTH = true;
@@ -141,6 +142,13 @@ function buildRussianAppMenu() {
           label: 'Почта: rodjeryan@gmail.com',
           click: async () => {
             await shell.openExternal('mailto:rodjeryan@gmail.com');
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Проверить обновления',
+          click: async () => {
+            await triggerUpdateCheck(true);
           },
         },
       ],
@@ -381,6 +389,8 @@ if (!gotTheLock) {
     }
 
     registerIPCHandlers();
+    registerUpdaterIpc(() => mainWindow);
+    initializeAutoUpdater(() => mainWindow);
     console.log('[Main] IPC handlers registered');
 
     createWindow();

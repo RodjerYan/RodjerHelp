@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
 
 /**
@@ -36,6 +36,45 @@ const accomplishAPI = {
   // Session management
   resumeSession: (sessionId: string, prompt: string, taskId?: string): Promise<unknown> =>
     ipcRenderer.invoke('session:resume', sessionId, prompt, taskId),
+
+
+  // Updates
+  getUpdateStatus: (): Promise<{
+    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    version?: string;
+    progress?: number;
+    transferred?: number;
+    total?: number;
+    message?: string;
+  }> => ipcRenderer.invoke('update:get-status'),
+  checkForUpdates: (): Promise<{
+    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    version?: string;
+    progress?: number;
+    transferred?: number;
+    total?: number;
+    message?: string;
+  }> => ipcRenderer.invoke('update:check'),
+  installDownloadedUpdate: (): Promise<boolean> => ipcRenderer.invoke('update:install'),
+  onUpdateStatus: (callback: (data: {
+    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    version?: string;
+    progress?: number;
+    transferred?: number;
+    total?: number;
+    message?: string;
+  }) => void) => {
+    const listener = (_: unknown, data: {
+      status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+      version?: string;
+      progress?: number;
+      transferred?: number;
+      total?: number;
+      message?: string;
+    }) => callback(data);
+    ipcRenderer.on('update:status', listener);
+    return () => ipcRenderer.removeListener('update:status', listener);
+  },
 
   // Settings
   getApiKeys: (): Promise<unknown[]> => ipcRenderer.invoke('settings:api-keys'),
@@ -439,8 +478,53 @@ const accomplishAPI = {
   getUserSkillsPath: (): Promise<string> => ipcRenderer.invoke('skills:get-user-skills-path'),
   pickSkillFile: (): Promise<string | null> => ipcRenderer.invoke('skills:pick-file'),
   // Chat attachments
-  pickChatFiles: (): Promise<Array<{ path: string; name: string; size: number; lastModified: number }>> =>
-    ipcRenderer.invoke('chat:pick-files'),
+  pickChatFiles: async (): Promise<Array<{ path: string; name: string; size: number; lastModified: number }>> => {
+    const res = await ipcRenderer.invoke('chat:pick-files');
+    __pickedChatFilesCache = Array.isArray(res) ? res : [];
+    return __pickedChatFilesCache;
+  },
+  getLastPickedChatFiles: async (): Promise<string[]> =>
+    __pickedChatFilesCache
+      .map((f: any) => (typeof f === 'string' ? f : f?.path || ''))
+      .filter(Boolean),
+  setLastPickedChatFiles: async (files: Array<{ path: string; name: string; size: number; lastModified: number }> | string[]) => {
+    __pickedChatFilesCache = Array.isArray(files) ? files : [];
+  },
+  clearLastPickedChatFiles: async () => {
+    __pickedChatFilesCache = [];
+  },
+  readChatFiles: (paths: string[]): Promise<Array<{
+    path: string;
+    name: string;
+    size: number;
+    truncated?: boolean;
+    text?: string;
+    error?: string;
+  }>> => ipcRenderer.invoke('chat:read-files', paths),
+  resolveDroppedChatFiles: async (files: File[]): Promise<Array<{ path: string; name: string; size: number; lastModified: number }>> => {
+    if (!Array.isArray(files) || files.length === 0) return [];
+
+    const seen = new Set<string>();
+    const resolved: Array<{ path: string; name: string; size: number; lastModified: number }> = [];
+
+    for (const file of files) {
+      try {
+        const filePath = String(webUtils.getPathForFile(file) || '').trim();
+        if (!filePath || seen.has(filePath)) continue;
+        seen.add(filePath);
+        resolved.push({
+          path: filePath,
+          name: file.name,
+          size: file.size,
+          lastModified: file.lastModified,
+        });
+      } catch {
+        // ignore invalid dropped items
+      }
+    }
+
+    return resolved;
+  },
   addSkillFromFile: (filePath: string): Promise<Skill> =>
     ipcRenderer.invoke('skills:add-from-file', filePath),
   addSkillFromGitHub: (rawUrl: string): Promise<Skill> =>
@@ -493,5 +577,14 @@ export type RodjerHelpAPI = typeof accomplishAPI;
 
 // rodjerhelpExtras bridge (attachments)
 contextBridge.exposeInMainWorld('rodjerhelpExtras', {
-  getLastPickedChatFiles: () => ipcRenderer.invoke('chat:last-picked-files'),
+  getLastPickedChatFiles: async () =>
+    __pickedChatFilesCache
+      .map((f: any) => (typeof f === 'string' ? f : f?.path || ''))
+      .filter(Boolean),
+  setLastPickedChatFiles: async (files: Array<{ path: string; name: string; size: number; lastModified: number }> | string[]) => {
+    __pickedChatFilesCache = Array.isArray(files) ? files : [];
+  },
+  clearLastPickedChatFiles: async () => {
+    __pickedChatFilesCache = [];
+  },
 });

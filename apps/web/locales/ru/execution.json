@@ -33,38 +33,38 @@
     "defaultPlaceholder": "Спросите что‑нибудь…"
   },
   "taskStatus": "Задача: {{status}}",
-  "processing": "Processing",
-  "system": "System",
+  "processing": "Обработка",
+  "system": "Система",
   "copyToClipboard": "Скопировать в буфер",
   "permission": {
-    "title": "Permission Required",
-    "fileTitle": "File Permission Required",
-    "fileDeleteTitle": "File Deletion Warning",
-    "questionTitle": "Question",
-    "toolQuestion": "Allow {{toolName}}?",
-    "tool": "Tool",
-    "previewContent": "Preview content",
-    "backToOptions": "← Back to options",
-    "typeResponse": "Type your response...",
+    "title": "Требуется разрешение",
+    "fileTitle": "Требуется доступ к файлу",
+    "fileDeleteTitle": "Предупреждение об удалении файла",
+    "questionTitle": "Вопрос",
+    "toolQuestion": "Разрешить {{toolName}}?",
+    "tool": "Инструмент",
+    "previewContent": "Предпросмотр содержимого",
+    "backToOptions": "← Назад к вариантам",
+    "typeResponse": "Введите ответ...",
     "orTypeOwn": "или введите свой вариант",
-    "enterDifferentOption": "Enter a different option...",
-    "cannotBeUndone": "This action cannot be undone.",
-    "deleteWarningSingle": "This file will be permanently deleted:",
-    "deleteWarningMultiple": "{{count}} files will be permanently deleted:",
+    "enterDifferentOption": "Введите другой вариант...",
+    "cannotBeUndone": "Это действие нельзя отменить.",
+    "deleteWarningSingle": "Этот файл будет удалён безвозвратно:",
+    "deleteWarningMultiple": "Файлы будут удалены безвозвратно: {{count}}",
     "operations": {
-      "delete": "DELETE",
-      "overwrite": "OVERWRITE",
-      "modify": "MODIFY",
-      "create": "CREATE",
-      "rename": "RENAME",
-      "move": "MOVE"
+      "delete": "УДАЛЕНИЕ",
+      "overwrite": "ПЕРЕЗАПИСЬ",
+      "modify": "ИЗМЕНЕНИЕ",
+      "create": "СОЗДАНИЕ",
+      "rename": "ПЕРЕИМЕНОВАНИЕ",
+      "move": "ПЕРЕМЕЩЕНИЕ"
     }
   },
   "browserInstall": {
-    "title": "Chrome not installed",
-    "description": "Installing browser for automation...",
-    "downloading": "Downloading...",
-    "oneTimeSetup": "One-time setup (~250 MB total)"
+    "title": "Chrome не установлен",
+    "description": "Устанавливаю браузер для автоматизации...",
+    "downloading": "Загрузка...",
+    "oneTimeSetup": "Разовая установка (~250 МБ)"
   },
   "debug": {
     "title": "Отладка",
@@ -73,28 +73,28 @@
     "copied": "Скопировано"
   },
   "browserScript": {
-    "title": "Browser Actions",
+    "title": "Действия в браузере",
     "actions": {
-      "navigateTo": "Navigate to {{hostname}}",
-      "navigate": "Navigate",
-      "fill": "Fill \"{{text}}\"",
-      "fillField": "Fill field",
-      "click": "Click {{target}}",
-      "press": "Press {{key}}",
-      "capturePage": "Capture page",
-      "screenshot": "Screenshot",
-      "waitForElement": "Wait for element",
-      "waitForPage": "Wait for page",
-      "waitForNavigation": "Wait for navigation",
-      "runScript": "Run script"
+      "navigateTo": "Перейти на {{hostname}}",
+      "navigate": "Перейти",
+      "fill": "Заполнить: \"{{text}}\"",
+      "fillField": "Заполнить поле",
+      "click": "Нажать: {{target}}",
+      "press": "Нажать клавишу {{key}}",
+      "capturePage": "Снять состояние страницы",
+      "screenshot": "Скриншот",
+      "waitForElement": "Ожидание элемента",
+      "waitForPage": "Ожидание страницы",
+      "waitForNavigation": "Ожидание перехода",
+      "runScript": "Выполнить скрипт"
     },
-    "showMore": "+{{count}} more",
-    "showLess": "Show less",
-    "showFewerActions": "Show fewer actions",
-    "showMoreActions": "Show {{count}} more actions"
+    "showMore": "+ ещё {{count}}",
+    "showLess": "Свернуть",
+    "showFewerActions": "Показать меньше действий",
+    "showMoreActions": "Показать ещё {{count}} действий"
   },
   "todos": {
-    "title": "Tasks",
-    "progress": "{{completed}} of {{total}}"
+    "title": "Задачи",
+    "progress": "{{completed}} из {{total}}"
   }
 }

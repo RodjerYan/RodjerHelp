@@ -16,7 +16,7 @@ export async function sendChatMessage(
   });
 
   if (!response.ok) {
-    throw new Error(`Send failed: ${response.status}`);
+    throw new Error(`Не удалось отправить: ${response.status}`);
   }
 
   return response.json();

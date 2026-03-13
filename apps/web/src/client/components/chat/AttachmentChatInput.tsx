@@ -103,7 +103,7 @@ export default function AttachmentChatInput({ apiBaseUrl, onSent }: Props) {
         <button
           type="button"
           onClick={() => void handleSend()}
-          className="h-10 rounded-xl bg-green-600 px-4 text-white disabled:opacity-50"
+          className="h-10 rounded-xl bg-blue-600 px-4 text-white disabled:opacity-50"
           disabled={isSending}
         >
           {isSending ? '...' : 'Отправить'}

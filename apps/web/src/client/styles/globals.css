@@ -98,10 +98,10 @@
   --card-foreground: 0 0% 12.5%; /* #202020 */
   --popover: 0 0% 98.8%; /* #fcfcfc */
   --popover-foreground: 0 0% 12.5%; /* #202020 */
-  --primary: 123 30% 20%; /* #213c20 */
+  --primary: 211 100% 56%; /* macOS / Telegram blue */
   --primary-foreground: 0 0% 100%; /* #ffffff */
-  --secondary: 120 14% 85%; /* #d8dfd7 */
-  --secondary-foreground: 100 20% 18%; /* #2b391e */
+  --secondary: 212 65% 92%; /* soft blue-gray */
+  --secondary-foreground: 214 72% 26%; /* deep blue text */
   --muted: 0 0% 93.7%; /* #efefef */
   --muted-foreground: 0 0% 39.2%; /* #646464 */
   --accent: 60 15% 96.3%; /* #F7F7F4 */
@@ -110,16 +110,16 @@
   --destructive-foreground: 0 0% 100%; /* #ffffff */
   --border: 12 8% 90%; /* #eae2e1 */
   --input: 0 0% 84.7%; /* #d8d8d8 */
-  --ring: 20 25% 33%; /* #644a40 */
+  --ring: 211 100% 56%; /* macOS / Telegram blue */
   --radius: 0.25rem;
   --warning-subtle: 36 95% 95%;
-  --success-subtle: 152 60% 93%;
+  --success-subtle: 211 100% 95%;
   --provider-bg: 40 20% 93%;
-  --provider-bg-active: 130 40% 93%;
+  --provider-bg-active: 211 100% 95%;
   --provider-bg-hover: 40 15% 96%;
   --provider-border-active: 40 30% 25%;
-  --provider-accent: 123 30% 30%;
-  --provider-accent-text: 123 30% 15%;
+  --provider-accent: 211 100% 56%;
+  --provider-accent-text: 214 72% 26%;
   --todo-progress-pending: 0 0% 85%;
   --todo-item-completed: 36 11% 95%;
   --todo-item-in-progress: 0 0% 98%;
@@ -132,10 +132,10 @@
   --card-foreground: 0 0% 95%;
   --popover: 220 16% 9%;
   --popover-foreground: 0 0% 95%;
-  --primary: 123 30% 45%;
-  --primary-foreground: 0 0% 9%;
-  --secondary: 120 10% 20%;
-  --secondary-foreground: 120 14% 85%;
+  --primary: 211 100% 66%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 214 36% 18%;
+  --secondary-foreground: 210 100% 92%;
   --muted: 0 0% 15%;
   --muted-foreground: 0 0% 64%;
   --accent: 0 0% 18%;
@@ -144,15 +144,15 @@
   --destructive-foreground: 0 0% 100%;
   --border: 220 14% 18%;
   --input: 220 14% 22%;
-  --ring: 20 25% 55%;
+  --ring: 211 100% 66%;
   --warning-subtle: 30 60% 15%;
-  --success-subtle: 150 40% 12%;
+  --success-subtle: 211 60% 18%;
   --provider-bg: 0 0% 15%;
-  --provider-bg-active: 130 20% 15%;
+  --provider-bg-active: 211 48% 18%;
   --provider-bg-hover: 0 0% 13%;
   --provider-border-active: 40 30% 50%;
-  --provider-accent: 123 30% 45%;
-  --provider-accent-text: 123 30% 75%;
+  --provider-accent: 211 100% 66%;
+  --provider-accent-text: 209 100% 90%;
   --todo-progress-pending: 0 0% 24%;
   --todo-item-completed: 0 0% 14%;
   --todo-item-in-progress: 0 0% 11%;
@@ -327,4 +327,88 @@ aside.macos26-sidebar,
 .sidebar > div,
 .app-sidebar > div {
   border-radius: 0 !important;
+}
+
+
+/* Global macOS / Telegram polish */
+@layer base {
+  .macos26 body,
+  body.macos26,
+  .macos26 {
+    color-scheme: dark;
+  }
+
+  .macos26 body,
+  .macos26 {
+    background-attachment: fixed;
+  }
+
+  .macos26 * {
+    border-color: hsl(var(--border));
+  }
+}
+
+@layer components {
+  .macos26 main {
+    position: relative;
+  }
+
+  .macos26 main::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(900px 520px at 10% 0%, rgba(86, 160, 255, 0.06), transparent 60%),
+      radial-gradient(780px 440px at 100% 0%, rgba(148, 200, 255, 0.05), transparent 58%);
+  }
+
+  .macos26 [data-slot='card'],
+  .macos26 [data-slot='dialog-content'] > div,
+  .macos26 [data-slot='button'],
+  .macos26 [data-slot='input'],
+  .macos26 [data-slot='textarea'] {
+    -webkit-backdrop-filter: blur(18px) saturate(1.18);
+    backdrop-filter: blur(18px) saturate(1.18);
+  }
+
+  .macos26 [data-slot='button'] {
+    letter-spacing: 0.01em;
+  }
+
+  .macos26 [data-slot='button']:not(:disabled) {
+    transform: translateZ(0);
+  }
+
+  .macos26 [data-slot='button']:hover:not(:disabled) {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  }
+
+  .macos26 [data-slot='card'] {
+    background: linear-gradient(180deg, rgba(20, 24, 36, 0.82), rgba(14, 18, 28, 0.78));
+  }
+
+  .macos26 [data-slot='input'],
+  .macos26 [data-slot='textarea'] {
+    color: rgba(255, 255, 255, 0.94);
+  }
+
+  .macos26 [data-slot='input']::placeholder,
+  .macos26 [data-slot='textarea']::placeholder {
+    color: rgba(255, 255, 255, 0.44);
+  }
+
+  .macos26 .border-border {
+    border-color: rgba(255, 255, 255, 0.10) !important;
+  }
+
+  .macos26 .bg-card,
+  .macos26 .bg-background,
+  .macos26 .bg-popover {
+    background-color: transparent;
+  }
+
+  .macos26 .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.62);
+  }
 }

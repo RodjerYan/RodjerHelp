@@ -11,14 +11,14 @@ interface ConnectorCardProps {
 }
 
 const statusDotClass: Record<ConnectorStatus, string> = {
-  connected: 'bg-green-500',
+  connected: 'bg-blue-500',
   disconnected: 'bg-muted-foreground',
   connecting: 'bg-yellow-500 animate-pulse',
   error: 'bg-destructive',
 };
 
 const statusTextClass: Record<ConnectorStatus, string> = {
-  connected: 'text-green-600',
+  connected: 'text-blue-400',
   disconnected: 'text-muted-foreground',
   connecting: 'text-yellow-600',
   error: 'text-destructive',
@@ -34,7 +34,7 @@ export const ConnectorCard = memo(function ConnectorCard({
   const { t } = useTranslation('settings');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Auto-cancel delete confirmation after 3 seconds, cleanup on unmount
+  // Автоотмена подтверждения удаления через 3 секунды, очистка при размонтировании
   useEffect(() => {
     if (!confirmDelete) return;
     const timer = setTimeout(() => setConfirmDelete(false), 3000);
@@ -54,11 +54,11 @@ export const ConnectorCard = memo(function ConnectorCard({
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
-        {/* Left: Name, URL, Status */}
+        {/* Слева: имя, URL, статус */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-medium text-foreground">{connector.name}</h3>
-            {/* Status badge */}
+            {/* Бейдж статуса */}
             <span
               className={`flex items-center gap-1 text-[11px] ${statusTextClass[connector.status]}`}
             >
@@ -73,9 +73,9 @@ export const ConnectorCard = memo(function ConnectorCard({
           </p>
         </div>
 
-        {/* Right: Toggle + Delete */}
+        {/* Справа: переключатель + удаление */}
         <div className="flex items-center gap-2">
-          {/* Enable/Disable toggle */}
+          {/* Переключатель включения/выключения */}
           <button
             onClick={() => onToggleEnabled(connector.id)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
@@ -90,7 +90,7 @@ export const ConnectorCard = memo(function ConnectorCard({
             />
           </button>
 
-          {/* Delete button */}
+          {/* Кнопка удаления */}
           <button
             onClick={() => {
               if (confirmDelete) {
@@ -120,7 +120,7 @@ export const ConnectorCard = memo(function ConnectorCard({
         </div>
       </div>
 
-      {/* Action button */}
+      {/* Кнопка действия */}
       <div className="mt-3">
         {connector.status === 'connected' ? (
           <button

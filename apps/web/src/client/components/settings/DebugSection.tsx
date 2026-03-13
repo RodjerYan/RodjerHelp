@@ -24,12 +24,12 @@ export function DebugSection({ debugMode, onDebugToggle }: DebugSectionProps) {
       } else if (result.reason === 'cancelled') {
         setExportStatus('idle');
       } else {
-        console.error('Failed to export logs:', result.error);
+        console.error('Не удалось экспортировать логи:', result.error);
         setExportStatus('error');
         setTimeout(() => setExportStatus('idle'), 3000);
       }
     } catch (error) {
-      console.error('Export logs error:', error);
+      console.error('Ошибка экспорта логов:', error);
       setExportStatus('error');
       setTimeout(() => setExportStatus('idle'), 3000);
     }
@@ -64,7 +64,7 @@ export function DebugSection({ debugMode, onDebugToggle }: DebugSectionProps) {
             title={t('developer.exportLogs')}
             className={`rounded-md p-1.5 transition-colors ${
               exportStatus === 'success'
-                ? 'text-green-500'
+                ? 'text-blue-500'
                 : exportStatus === 'error'
                   ? 'text-destructive'
                   : 'text-muted-foreground hover:text-foreground'

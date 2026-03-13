@@ -31,8 +31,10 @@ export function HomePage() {
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     'providers' | 'voice' | 'skills' | 'connectors'
   >('providers');
+
   const { startTask, interruptTask, isLoading, addTaskUpdate, setPermissionRequest } =
     useTaskStore();
+
   const navigate = useNavigate();
   const accomplish = useMemo(() => getRodjerHelp(), []);
   const { t } = useTranslation('home');
@@ -55,81 +57,78 @@ export function HomePage() {
       setPermissionRequest(request);
     });
 
-    
-  // ATTACHMENTS_PROMPT_V3: show attachments in the sent user message and provide paths and contents to the agent.
-  const buildPromptWithAttachments = async (text: string): Promise<string> => {
-    try {
-      // @ts-ignore
-      const local = (typeof attachedFiles !== 'undefined' && Array.isArray(attachedFiles)) ? attachedFiles : [];
-      // @ts-ignore
-      const extras = (window as any)?.rodjerhelpExtras;
-      const last = (typeof extras?.getLastPickedChatFiles === 'function') ? await extras.getLastPickedChatFiles() : [];
-      const paths = (local.length ? local.map((f:any)=>f.path) : last).filter(Boolean);
-      if (!paths.length) return text;
-
-      const names = paths.map((p:string)=>p.split(/[\\/]/).pop() || p).slice(0, 6);
-      const more = paths.length > 6 ? (' +' + String(paths.length - 6)) : '';
-      const header = '📎 Вложения: ' + names.join(', ') + more;
-
-      let blocks = '';
-      try {
-        // @ts-ignore
-        const fileResults = await rodjerhelp.readChatFiles(paths);
-        blocks =
-          '\n\n[Attached files]\n' +
-          'You already have the absolute file path(s) and the contents below. Use them directly and DO NOT ask me to provide the path again.\n\n' +
-          fileResults
-            .map((f:any) => {
-              const p = f.path || '';
-              const nm = f.name || (p.split(/[\\/]/).pop() || 'file');
-              if (f.error) return '- ' + nm + ' (path: ' + p + '): ERROR ' + f.error;
-              const head = '### File: ' + nm + '\nPath: ' + p + '\nSize: ' + String(f.size ?? 0) + ' bytes' + (f.truncated ? ' [TRUNCATED]' : '');
-              return head + '\n\n<<<FILE_CONTENT_START>>>\n' + (f.text ?? '') + '\n<<<FILE_CONTENT_END>>>';
-            })
-            .join('\n\n');
-      } catch {}
-
-      return header + '\n' + text + blocks;
-    } catch (e) {
-      console.warn('[ATTACHMENTS_PROMPT_V3] failed:', e);
-      return text;
-    }
-  };
-
-return () => {
+    return () => {
       unsubscribeTask();
       unsubscribePermission();
     };
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
 
+  const handleAttachFiles = useCallback(async () => {
+    try {
+      const files = await accomplish.pickChatFiles();
+      if (!files || files.length === 0) return;
 
-const handleAttachFiles = useCallback(async () => {
-  try {
-    const files = await accomplish.pickChatFiles();
-    if (!files || files.length === 0) return;
+      let nextFiles: PickedFile[] = [];
+      setAttachedFiles((prev) => {
+        const seen = new Set(prev.map((p) => p.path));
+        nextFiles = [...prev];
+
+        for (const f of files) {
+          if (!seen.has(f.path)) {
+            nextFiles.push(f);
+            seen.add(f.path);
+          }
+        }
+
+        return nextFiles;
+      });
+
+      await (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+    } catch (err) {
+      console.error('Не удалось выбрать файлы:', err);
+    }
+  }, [accomplish]);
+
+  const handleRemoveAttachment = useCallback((path: string) => {
     setAttachedFiles((prev) => {
-      const seen = new Set(prev.map((p) => p.path));
-      const next = [...prev];
-      for (const f of files) {
-        if (!seen.has(f.path)) next.push(f);
-      }
-      return next;
+      const nextFiles = prev.filter((f) => f.path !== path);
+      void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+      return nextFiles;
     });
-  } catch (err) {
-    console.error('Failed to pick files:', err);
-  }
-}, [accomplish]);
+  }, []);
 
-const handleRemoveAttachment = useCallback((path: string) => {
-  setAttachedFiles((prev) => prev.filter((f) => f.path !== path));
-}, []);
+
+  const handleAddAttachments = useCallback((files: PickedFile[]) => {
+    setAttachedFiles((prev) => {
+      const seen = new Set(prev.map((file) => file.path));
+      const nextFiles = [...prev];
+
+      for (const file of files) {
+        if (!seen.has(file.path)) {
+          nextFiles.push(file);
+          seen.add(file.path);
+        }
+      }
+
+      void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+      return nextFiles;
+    });
+  }, []);
 
   const executeTask = useCallback(async () => {
     if (!prompt.trim() || isLoading) return;
 
     const taskId = `task_${Date.now()}`;
-    const task = await startTask({ prompt: prompt.trim(), taskId });
+
+    const task = await startTask({
+      prompt: prompt.trim(),
+      taskId,
+    });
+
     if (task) {
+      setAttachedFiles([]);
+      await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
+      setPrompt('');
       navigate(`/execution/${task.id}`);
     }
   }, [prompt, isLoading, startTask, navigate]);
@@ -139,6 +138,7 @@ const handleRemoveAttachment = useCallback((path: string) => {
       void interruptTask();
       return;
     }
+
     if (!prompt.trim()) return;
 
     const isE2EMode = await accomplish.isE2EMode();
@@ -158,6 +158,7 @@ const handleRemoveAttachment = useCallback((path: string) => {
     setShowSettingsDialog(open);
     if (!open) {
       setSettingsInitialTab('providers');
+      focusPromptTextarea(120);
     }
   };
 
@@ -175,17 +176,55 @@ const handleRemoveAttachment = useCallback((path: string) => {
     setShowSettingsDialog(false);
     if (prompt.trim()) {
       await executeTask();
+      return;
     }
+    focusPromptTextarea(120);
   };
 
-  const focusPromptTextarea = () => {
-    setTimeout(() => {
+  const focusPromptTextarea = useCallback((delay = 0) => {
+    window.setTimeout(() => {
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
+      document.body.removeAttribute('inert');
+      document.documentElement.removeAttribute('inert');
       const textarea = document.querySelector<HTMLTextAreaElement>(
         '[data-testid="task-input-textarea"]',
       );
-      textarea?.focus();
-    }, 0);
-  };
+      if (textarea && !textarea.disabled) {
+        textarea.focus();
+        const valueLength = textarea.value?.length ?? 0;
+        try {
+          textarea.setSelectionRange(valueLength, valueLength);
+        } catch {
+          // ignore selection errors for unsupported environments
+        }
+      }
+    }, delay);
+  }, []);
+
+
+  useEffect(() => {
+    if (showSettingsDialog) return;
+
+    const restoreFocus = () => focusPromptTextarea(0);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        focusPromptTextarea(30);
+      }
+    };
+
+    window.addEventListener('focus', restoreFocus);
+    window.addEventListener('pageshow', restoreFocus);
+    window.addEventListener('mouseup', restoreFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', restoreFocus);
+      window.removeEventListener('pageshow', restoreFocus);
+      window.removeEventListener('mouseup', restoreFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [focusPromptTextarea, showSettingsDialog]);
 
   const handleExampleClick = (examplePrompt: string) => {
     setPrompt(examplePrompt);
@@ -238,6 +277,7 @@ const handleRemoveAttachment = useCallback((path: string) => {
                 onOpenModelSettings={handleOpenModelSettings}
                 hideModelWhenNoModel={true}
                 attachments={attachedFiles}
+                onAddAttachments={handleAddAttachments}
                 onRemoveAttachment={handleRemoveAttachment}
                 toolbarLeft={
                   <PlusMenu

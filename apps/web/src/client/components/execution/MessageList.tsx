@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { springs } from '../../lib/animations';
 import type { TaskMessage } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Wrench, Terminal, Check, Copy, Play } from '@phosphor-icons/react';
+import { Wrench, Terminal, Check, Copy, Play, Paperclip, FileText } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StreamingText } from '../ui/streaming-text';
 import { BrowserScriptCard } from '../BrowserScriptCard';
@@ -25,6 +26,41 @@ export interface MessageBubbleProps {
 }
 
 const COPIED_STATE_DURATION_MS = 1000;
+
+const ATTACHMENTS_HEADER_RE = /^📎\s*Вложения:\s*(.+)$/m;
+const ATTACHMENTS_PAYLOAD_RE = /\n\n\[(?:Attached file paths|Attached files|Attached file contents)\][\s\S]*$/m;
+
+const whiteMarkdownComponents: Components = {
+  p: ({ node, ...props }) => <p className="m-0 whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff' }} {...props} />,
+  strong: ({ node, ...props }) => <strong className="font-semibold text-white" style={{ color: '#ffffff' }} {...props} />,
+  em: ({ node, ...props }) => <em className="text-white" style={{ color: '#ffffff' }} {...props} />,
+  li: ({ node, ...props }) => <li className="text-white" style={{ color: '#ffffff' }} {...props} />,
+  ul: ({ node, ...props }) => <ul className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />,
+  ol: ({ node, ...props }) => <ol className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />,
+  code: ({ node, className, children, ...props }) => (
+    <code className={cn(className, 'text-white')} style={{ color: '#ffffff' }} {...props}>{children}</code>
+  ),
+  a: ({ node, ...props }) => <a className="text-white underline underline-offset-4" style={{ color: '#ffffff' }} {...props} />,
+};
+
+function extractAttachmentMeta(content: string): { files: string[]; cleaned: string } {
+  const match = content.match(ATTACHMENTS_HEADER_RE);
+  if (!match) return { files: [], cleaned: content };
+
+  const files = match[1]
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const cleaned = content
+    .replace(ATTACHMENTS_HEADER_RE, '')
+    .replace(/^\s+/, '')
+    .replace(ATTACHMENTS_PAYLOAD_RE, '')
+    .trim();
+
+  return { files, cleaned };
+}
+
 
 export const MessageBubble = memo(
   function MessageBubble({
@@ -64,9 +100,19 @@ export const MessageBubble = memo(
       };
     }, []);
 
+    const attachmentMeta = useMemo(
+      () =>
+        isUser
+          ? extractAttachmentMeta(message.content || '')
+          : { files: [], cleaned: message.content || '' },
+      [isUser, message.content],
+    );
+
+    const visibleContent = attachmentMeta.cleaned || message.content;
+
     const handleCopy = useCallback(async () => {
       try {
-        await navigator.clipboard.writeText(message.content);
+        await navigator.clipboard.writeText(visibleContent);
         setCopied(true);
 
         if (timeoutRef.current) {
@@ -79,7 +125,8 @@ export const MessageBubble = memo(
       } catch {
         // clipboard write may fail in non-secure contexts
       }
-    }, [message.content]);
+    }, [visibleContent]);
+    const showCopyButton = !isTool && !!visibleContent?.trim();
 
     if (isTool && message.toolName === 'todowrite') {
       return null;
@@ -89,31 +136,32 @@ export const MessageBubble = memo(
       return null;
     }
 
-    const showCopyButton = !isTool && !!message.content?.trim();
-
     const proseClasses = cn(
       'text-sm prose prose-sm max-w-none',
-      'prose-headings:text-foreground',
-      'prose-p:text-foreground prose-p:my-2',
-      'prose-strong:text-foreground prose-strong:font-semibold',
-      'prose-em:text-foreground',
-      'prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs',
-      'prose-pre:bg-muted prose-pre:text-foreground prose-pre:p-3 prose-pre:rounded-lg',
-      'prose-ul:text-foreground prose-ol:text-foreground',
-      'prose-li:text-foreground prose-li:my-1',
-      'prose-a:text-primary prose-a:underline',
-      'prose-blockquote:text-muted-foreground prose-blockquote:border-l-4 prose-blockquote:border-border prose-blockquote:pl-4',
-      'prose-hr:border-border',
-      'prose-table:w-full prose-thead:border-b prose-thead:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-foreground prose-th:font-semibold prose-td:px-3 prose-td:py-2 prose-td:text-foreground prose-tr:border-b prose-tr:border-border',
-      'break-words',
+      'prose-headings:mt-2 prose-headings:mb-2 prose-headings:font-semibold',
+      'prose-headings:text-inherit',
+      'prose-p:my-2 prose-p:text-inherit',
+      'prose-strong:text-inherit',
+      'prose-ul:my-2 prose-ol:my-2',
+      'prose-li:my-1 prose-li:text-inherit',
+      'prose-a:text-inherit prose-a:underline prose-a:underline-offset-4',
+      'prose-hr:border-white/10',
+      'prose-blockquote:border-white/15 prose-blockquote:text-white/80',
+      'prose-code:text-inherit',
+      'prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded-md',
+      'prose-pre:bg-white/8 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl',
+      'prose-pre:text-inherit',
     );
-
     return (
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        layout
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={springs.gentle}
-        className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}
+        transition={springs.snappy}
+        className={cn(
+          'group flex w-full',
+          isUser ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'
+        )}
       >
         {isTool &&
         toolName?.endsWith('browser_script') &&
@@ -138,61 +186,96 @@ export const MessageBubble = memo(
         ) : (
           <div
             className={cn(
-              'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150 relative',
+              'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-200 relative shadow-sm',
               isUser
-                ? 'bg-primary text-primary-foreground'
+                ? 'max-w-[78%] md:max-w-[70%] rounded-[26px] rounded-br-[10px] bg-[#0A84FF] text-white border border-white/10 shadow-[0_10px_30px_rgba(10,132,255,0.28)]'
                 : isTool
                   ? 'bg-muted border border-border'
                   : isSystem
-                    ? 'bg-muted/50 border border-border'
-                    : 'bg-card border border-border',
+                    ? 'max-w-[88%] md:max-w-[72%] rounded-[22px] bg-[linear-gradient(180deg,rgba(56,56,61,0.98),rgba(28,28,32,0.98))] text-white border border-white/16 shadow-[0_14px_38px_rgba(0,0,0,0.52)] backdrop-blur-md text-left selection:bg-white/20 selection:text-white'
+                    : 'max-w-[78%] md:max-w-[70%] rounded-[26px] rounded-bl-[10px] bg-[#f2f2f7] dark:bg-[linear-gradient(180deg,rgba(56,56,61,0.98),rgba(28,28,32,0.98))] text-slate-900 dark:text-white border border-black/5 dark:border-white/12 shadow-[0_10px_30px_rgba(15,23,42,0.10)] dark:shadow-[0_14px_38px_rgba(0,0,0,0.45)]',
             )}
           >
             {isTool ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
                 {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-                <span>{toolDisplayInfo?.label || toolName || 'Processing'}</span>
+                <span>{toolDisplayInfo?.label || toolName || 'Обработка'}</span>
                 {isLastMessage && isRunning && <SpinningIcon className="h-3.5 w-3.5 ml-1" />}
               </div>
             ) : (
               <>
                 {isSystem && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 font-medium">
-                    <Terminal className="h-3.5 w-3.5" />
-                    System
+                  <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-white/8 shadow-inner shadow-black/10">
+                      <Terminal className="h-3.5 w-3.5 text-white/90" />
+                    </span>
+                    <span>Системное сообщение</span>
                   </div>
                 )}
                 {isUser ? (
-                  <p
-                    className={cn(
-                      'text-sm whitespace-pre-wrap break-words',
-                      'text-primary-foreground',
+                  <div className="space-y-2">
+                    {attachmentMeta.files.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {attachmentMeta.files.map((file, index) => (
+                          <div
+                            key={`${file}-${index}`}
+                            className="inline-flex max-w-full items-center gap-2 rounded-[18px] border border-white/15 bg-white/15 px-3 py-1.5 text-xs text-white/95 shadow-sm backdrop-blur-sm"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                            <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                            <span className="max-w-[260px] truncate font-medium tracking-[0.01em]">{file}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  >
-                    {message.content}
-                  </p>
+                    {visibleContent && (
+                      <p className="text-[15px] leading-6 whitespace-pre-wrap break-words text-white">
+                          {visibleContent}
+                        </p>
+                    )}
+                  </div>
                 ) : isAssistant && shouldStream && !streamComplete ? (
                   <StreamingText
-                    text={message.content}
+                    text={visibleContent}
                     speed={120}
                     isComplete={streamComplete}
                     onComplete={() => setStreamComplete(true)}
                   >
                     {(streamedText) => (
-                      <div className={proseClasses}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamedText}</ReactMarkdown>
+                      <div
+                        className={cn(
+                          proseClasses,
+                          isSystem
+                            ? 'text-[14px] leading-6 !text-white opacity-100 [&_p]:!m-0 [&_*]:!text-white'
+                            : !isUser && (isAssistant ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white' : 'text-[15px] leading-6')
+                        )}
+                      >
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}>{streamedText}</ReactMarkdown>
                       </div>
                     )}
                   </StreamingText>
                 ) : (
-                  <div className={proseClasses}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                  <div
+                    className={cn(
+                      proseClasses,
+                      isSystem
+                        ? 'text-[14px] leading-6 !text-white opacity-100 [&_p]:!m-0 [&_*]:!text-white'
+                        : !isUser && (isAssistant ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white' : 'text-[15px] leading-6')
+                    )}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}>{visibleContent}</ReactMarkdown>
                   </div>
                 )}
                 <p
                   className={cn(
-                    'text-xs mt-1.5',
-                    isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
+                    'mt-1.5 text-[11px]',
+                    isUser
+                      ? 'text-white/72'
+                      : isSystem
+                        ? 'text-white/88'
+                        : isAssistant
+                          ? 'text-slate-500 dark:text-white/72'
+                          : 'text-muted-foreground',
                   )}
                 >
                   {new Date(message.timestamp).toLocaleTimeString()}
@@ -200,12 +283,13 @@ export const MessageBubble = memo(
                 {isAssistant && showContinueButton && onContinue && (
                   <Button
                     size="sm"
+                    variant="secondary"
                     onClick={onContinue}
                     disabled={isLoading}
                     className="mt-3 gap-1.5"
                   >
                     <Play className="h-3 w-3" />
-                    {continueLabel || 'Continue'}
+                    {continueLabel || 'Продолжить'}
                   </Button>
                 )}
               </>
@@ -222,23 +306,27 @@ export const MessageBubble = memo(
                       'absolute bottom-2 right-2',
                       'opacity-0 group-hover:opacity-100 transition-all duration-200',
                       'p-1 rounded',
-                      isUser ? 'hover:bg-primary-foreground/20' : 'hover:bg-accent',
+                      isUser ? 'hover:bg-white/18' : isSystem ? 'hover:bg-white/10' : 'hover:bg-accent',
                       isUser
                         ? !copied
-                          ? 'text-primary-foreground/70 hover:text-primary-foreground'
-                          : '!bg-green-500/20 !text-green-300'
-                        : !copied
-                          ? 'text-muted-foreground hover:text-foreground'
-                          : '!bg-green-500/10 !text-green-600',
+                          ? 'text-white/70 hover:text-white'
+                          : '!bg-blue-500/20 !text-blue-200'
+                        : isSystem
+                          ? !copied
+                            ? 'text-white/50 hover:text-white/85'
+                            : '!bg-blue-500/15 !text-blue-200'
+                          : !copied
+                            ? 'text-muted-foreground hover:text-foreground'
+                            : '!bg-blue-500/10 !text-blue-400',
                     )}
-                    aria-label={'Copy to clipboard'}
+                    aria-label={'Скопировать в буфер'}
                   >
                     <Check className={cn('absolute h-4 w-4', !copied && 'hidden')} />
                     <Copy className={cn('absolute h-4 w-4', copied && 'hidden')} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <span>Copy to clipboard</span>
+                  <span>Скопировать в буфер</span>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -255,3 +343,6 @@ export const MessageBubble = memo(
     prev.showContinueButton === next.showContinueButton &&
     prev.isLoading === next.isLoading,
 );
+
+
+

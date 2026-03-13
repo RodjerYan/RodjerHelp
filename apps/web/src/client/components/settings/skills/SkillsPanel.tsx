@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { SkillCard } from './SkillCard';
+import { localizeSkillForRu } from '@/lib/skillLocalization';
 
 type FilterType = 'all' | 'active' | 'inactive' | 'official';
 
@@ -27,10 +28,10 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get visible skills (non-hidden)
+  // Берём видимые навыки (не скрытые)
   const visibleSkills = useMemo(() => skills.filter((s) => !s.isHidden), [skills]);
 
-  // Calculate counts for each filter
+  // Считаем количество для каждого фильтра
   const filterCounts = useMemo(
     () => ({
       all: visibleSkills.length,
@@ -41,11 +42,11 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     [visibleSkills],
   );
 
-  // Filter and search skills (hide hidden skills)
+  // Фильтрация и поиск навыков (скрытые не показываем)
   const filteredSkills = useMemo(() => {
     let result = visibleSkills;
 
-    // Apply filter
+    // Применяем фильтр
     if (filter === 'active') {
       result = result.filter((s) => s.isEnabled);
     } else if (filter === 'inactive') {
@@ -54,35 +55,39 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
       result = result.filter((s) => s.source === 'official');
     }
 
-    // Apply search
+    // Применяем поиск
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (s) =>
+      result = result.filter((s) => {
+        const localized = localizeSkillForRu(s);
+        return (
+          localized.name.toLowerCase().includes(query) ||
+          localized.description.toLowerCase().includes(query) ||
           s.name.toLowerCase().includes(query) ||
           s.description.toLowerCase().includes(query) ||
-          s.command.toLowerCase().includes(query),
-      );
+          s.command.toLowerCase().includes(query)
+        );
+      });
     }
 
     return result;
   }, [visibleSkills, filter, searchQuery]);
 
-  // Check if scrolled to bottom
+  // Проверяем, прокручено ли до конца
   const checkScrollPosition = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const threshold = 5; // Small threshold for rounding errors
+    const threshold = 5; // Небольшой порог для погрешностей округления
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
     setIsAtBottom(atBottom);
   }, []);
 
-  // Check scroll position on mount and when filtered skills change
+  // Проверяем позицию скролла при маунте и изменении фильтра
   useEffect(() => {
     checkScrollPosition();
   }, [filteredSkills, checkScrollPosition]);
 
-  // Load skills on mount and when refreshTrigger changes
+  // Загружаем навыки при маунте и при смене refreshTrigger
   useEffect(() => {
     if (!window.accomplish) {
       console.error('RodjerHelp API недоступен (приложение запущено не в Electron)');
@@ -96,7 +101,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
       .finally(() => setLoading(false));
   }, [refreshTrigger]);
 
-  // Handlers
+  // Обработчики
   const handleToggle = useCallback(
     async (id: string) => {
       const skill = skills.find((s) => s.id === id);
@@ -106,7 +111,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         await window.accomplish.setSkillEnabled(id, !skill.isEnabled);
         setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, isEnabled: !s.isEnabled } : s)));
       } catch (err) {
-        console.error('Failed to toggle skill:', err);
+        console.error('Не удалось переключить навык:', err);
       }
     },
     [skills],
@@ -118,7 +123,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
       if (!skill || !window.accomplish) return;
 
       if (skill.source === 'official') {
-        console.warn('Cannot delete official skills');
+        console.warn('Нельзя удалять официальные навыки');
         return;
       }
 
@@ -126,7 +131,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         await window.accomplish.deleteSkill(id);
         setSkills((prev) => prev.filter((s) => s.id !== id));
       } catch (err) {
-        console.error('Failed to delete skill:', err);
+        console.error('Не удалось удалить навык:', err);
       }
     },
     [skills],
@@ -137,7 +142,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.openSkillInEditor(filePath);
     } catch (err) {
-      console.error('Failed to open skill in editor:', err);
+        console.error('Не удалось открыть навык в редакторе:', err);
     }
   }, []);
 
@@ -146,7 +151,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.showSkillInFolder(filePath);
     } catch (err) {
-      console.error('Failed to show skill in folder:', err);
+        console.error('Не удалось показать навык в папке:', err);
     }
   }, []);
 
@@ -160,7 +165,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     if (!window.accomplish || isResyncing) return;
     setIsResyncing(true);
     try {
-      // Run resync and minimum delay in parallel so animation is visible
+      // Запускаем синхронизацию и минимальную задержку параллельно, чтобы анимация была заметна
       const [updatedSkills] = await Promise.all([
         window.accomplish.resyncSkills(),
         new Promise((resolve) => setTimeout(resolve, 600)),
@@ -192,9 +197,9 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
 
   return (
     <div className="flex flex-col">
-      {/* Toolbar: Filter + Search */}
+      {/* Панель: фильтр + поиск */}
       <div className="mb-4 flex gap-3">
-        {/* Filter Dropdown */}
+        {/* Выпадающий фильтр */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-[150px] items-center justify-between gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-muted">
@@ -247,7 +252,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Search Input */}
+        {/* Поле поиска */}
         <div className="relative flex-1">
           <svg
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -268,7 +273,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
           />
         </div>
 
-        {/* Refresh Button */}
+        {/* Кнопка обновления */}
         <motion.button
           onClick={handleResync}
           disabled={isResyncing}
@@ -296,7 +301,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         </motion.button>
       </div>
 
-      {/* Scrollable Skills Grid */}
+      {/* Прокручиваемая сетка навыков */}
       <div
         ref={scrollRef}
         onScroll={checkScrollPosition}
@@ -345,7 +350,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
         </AnimatePresence>
       </div>
 
-      {/* Scroll Indicator - use opacity to prevent layout shift flickering */}
+      {/* Индикатор прокрутки — используем opacity, чтобы избежать мерцания сдвига */}
       {filteredSkills.length > 4 && (
         <div
           className={`mt-2 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground transition-opacity duration-150 ${

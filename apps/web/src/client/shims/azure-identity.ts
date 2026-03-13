@@ -1,26 +1,26 @@
-// Browser shim for @azure/identity.
-// The real package is Node-focused and should not be bundled into the web/renderer build.
+// Браузерный shim для @azure/identity.
+// Реальный пакет ориентирован на Node и не должен попадать в web/renderer сборку.
 
 export class DefaultAzureCredential {
   constructor(..._args: any[]) {
-    throw new Error('@azure/identity is not supported in the browser build.');
+    throw new Error('@azure/identity не поддерживается в браузерной сборке.');
   }
 }
 
 export class AzureCliCredential {
   constructor(..._args: any[]) {
-    throw new Error('@azure/identity is not supported in the browser build.');
+    throw new Error('@azure/identity не поддерживается в браузерной сборке.');
   }
 }
 
 export class ClientSecretCredential {
   constructor(..._args: any[]) {
-    throw new Error('@azure/identity is not supported in the browser build.');
+    throw new Error('@azure/identity не поддерживается в браузерной сборке.');
   }
 }
 
 export class ManagedIdentityCredential {
   constructor(..._args: any[]) {
-    throw new Error('@azure/identity is not supported in the browser build.');
+    throw new Error('@azure/identity не поддерживается в браузерной сборке.');
   }
 }

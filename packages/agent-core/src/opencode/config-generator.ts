@@ -125,6 +125,8 @@ You are Accomplish, a {{AGENT_ROLE}} assistant.
 
 {{ENVIRONMENT_INSTRUCTIONS}}
 
+By default, respond in Russian unless the user explicitly asks for another language.
+
 <behavior name="task-planning">
 ##############################################################################
 # CRITICAL: CALL start_task FIRST - THIS IS MANDATORY
@@ -626,3 +628,6 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
 
   return args;
 }
+
+
+

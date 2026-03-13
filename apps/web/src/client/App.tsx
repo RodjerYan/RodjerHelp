@@ -105,7 +105,7 @@ export function App() {
         await accomplish.setOnboardingComplete(true);
         setStatus('ready');
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        console.error('Не удалось инициализировать приложение:', error);
         setStatus('ready');
       }
     };
@@ -113,7 +113,7 @@ export function App() {
     checkStatus();
   }, [t]);
 
-  // Loading state
+  // Состояние загрузки
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -122,7 +122,7 @@ export function App() {
     );
   }
 
-  // Error state
+  // Состояние ошибки
   if (status === 'error') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-8">
@@ -141,16 +141,16 @@ export function App() {
 
   // Ready - render the app with sidebar
   return (
-    <div className="flex h-screen overflow-hidden bg-background macos26">
+    <div className="flex h-screen overflow-hidden bg-background macos26 macos26-bg macos26-noise">
       {/* Invisible drag region for window dragging (macOS hiddenInset titlebar) */}
       <div className="drag-region fixed top-0 left-0 right-0 h-10 z-50 pointer-events-none" />
       <Sidebar />
-      <main className="flex-1 overflow-hidden">
+      <main className="relative flex-1 overflow-hidden">
         <AnimatedOutletWrapper />
       </main>
       <TaskLauncher />
 
-      {/* Auth Error Toast - shown when OAuth session expires */}
+      {/* Тост ошибки авторизации — показывается при истечении сессии OAuth */}
       <AuthErrorToast error={authError} onReLogin={handleAuthReLogin} onDismiss={clearAuthError} />
 
       {/* Settings Dialog for re-authentication */}

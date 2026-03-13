@@ -9,7 +9,7 @@ interface ConnectorsSubmenuProps {
 }
 
 const statusDot: Record<ConnectorStatus, string> = {
-  connected: 'bg-green-500',
+  connected: 'bg-blue-500',
   disconnected: 'bg-muted-foreground/50',
   connecting: 'bg-yellow-500 animate-pulse',
   error: 'bg-destructive',
@@ -62,7 +62,7 @@ export function ConnectorsSubmenu({
                   type="button"
                   role="switch"
                   aria-checked={connector.isEnabled}
-                  aria-label={`Toggle ${connector.name}`}
+                  aria-label={`Переключить ${connector.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggle(connector.id, !connector.isEnabled);

@@ -82,7 +82,7 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
       {/* Configured status */}
       {isConfigured && !apiKey && (
         <div className="mb-2.5 flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-2 text-[11px] text-foreground">
-          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-500" />
+          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-blue-500" />
           <span>{t('speech.apiKeyConfigured')}</span>
         </div>
       )}
@@ -118,7 +118,7 @@ export function SpeechSettingsForm({ onSave, onChange }: SpeechSettingsFormProps
         <div
           className={`mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[10px] ${
             saveResult.success
-              ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
               : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
           }`}
         >

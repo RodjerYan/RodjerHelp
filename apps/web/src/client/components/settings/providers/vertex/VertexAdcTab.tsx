@@ -75,7 +75,7 @@ export function VertexAdcTab({
         <code className="text-xs bg-muted rounded px-1 py-0.5">{t('vertex.adcCommand')}</code>
       </div>
 
-      {/* Project Selector */}
+      {/* Выбор проекта */}
       {error ? (
         <div className="rounded-md bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
           {error}

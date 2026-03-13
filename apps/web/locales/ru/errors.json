@@ -33,96 +33,96 @@
     "exitWithCode": "OpenCode CLI завершился с кодом {{code}}"
   },
   "validation": {
-    "mustBeString": "{{field}} must be a string",
+    "mustBeString": "{{field}} должно быть строкой",
     "required": "Это поле обязательно",
-    "exceedsLength": "{{field}} exceeds maximum length",
-    "unsupportedProvider": "Unsupported API key provider",
-    "untrustedWindow": "Untrusted window",
+    "exceedsLength": "{{field}} превышает максимальную длину",
+    "unsupportedProvider": "Неподдерживаемый провайдер API‑ключа",
+    "untrustedWindow": "Недоверенное окно",
     "focusedWindowRequired": "IPC‑запрос должен исходить из активного окна",
     "invalidUrl": "Некорректный URL"
   },
   "provider": {
     "notReady": "Нет готового провайдера. Подключите провайдера и выберите модель в «Настройки».",
-    "noModelsEndpoint": "Для этого провайдера не настроен endpoint моделей",
+    "noModelsEndpoint": "Для этого провайдера не настроена конечная точка моделей",
     "noApiKey": "Для этого провайдера не найден API‑ключ"
   },
   "ollama": {
     "connectionFailed": "Не удалось подключиться",
     "noModels": "Модели Ollama не найдены",
-    "saveFailed": "Failed to save",
-    "invalidUrl": "Invalid URL format",
+    "saveFailed": "Не удалось сохранить",
+    "invalidUrl": "Некорректный формат URL",
     "protocolNotAllowed": "Разрешены только URL с протоколами http и https",
-    "invalidConfig": "Invalid Ollama configuration",
+    "invalidConfig": "Неверная конфигурация Ollama",
     "modelsArray": "Неверная конфигурация Ollama: models должен быть массивом",
     "invalidModelFormat": "Неверная конфигурация Ollama: неправильный формат модели",
-    "connectionTimeout": "Подключитьion timed out. Make sure Ollama is running.",
-    "cannotConnect": "Cannot connect to Ollama: {{message}}"
+    "connectionTimeout": "Время ожидания подключения истекло. Убедитесь, что Ollama запущен.",
+    "cannotConnect": "Не удалось подключиться к Ollama: {{message}}"
   },
   "bedrock": {
     "invalidCredentials": "Неверные учетные данные",
-    "saveFailed": "Failed to save credentials",
-    "invalidAuthType": "Invalid authentication type",
-    "invalidAwsCredentials": "Неверные учетные данные AWS. Проверьте Access Key ID и Secret Access Key.",
+    "saveFailed": "Не удалось сохранить учетные данные",
+    "invalidAuthType": "Неверный тип аутентификации",
+    "invalidAwsCredentials": "Неверные учетные данные AWS. Проверьте ID ключа доступа и секретный ключ доступа.",
     "accessDenied": "Доступ запрещён. Убедитесь, что у ваших учетных данных AWS есть права для Bedrock.",
     "profileNotFound": "Профиль AWS не найден. Проверьте файл ~/.aws/credentials.",
-    "accessKeyRequired": "Требуются Access Key ID и Secret Access Key",
-    "profileNameRequired": "Profile name is required",
-    "apiKeyRequired": "API‑ключ is required"
+    "accessKeyRequired": "Требуются ID ключа доступа и секретный ключ доступа",
+    "profileNameRequired": "Имя профиля обязательно",
+    "apiKeyRequired": "API‑ключ обязателен"
   },
   "model": {
-    "invalidConfig": "Invalid model configuration"
+    "invalidConfig": "Неверная конфигурация модели"
   },
   "litellm": {
-    "invalidConfig": "Invalid LiteLLM configuration",
-    "modelsArray": "Invalid LiteLLM configuration: models must be an array",
-    "invalidModelFormat": "Invalid LiteLLM configuration: invalid model format"
+    "invalidConfig": "Неверная конфигурация LiteLLM",
+    "modelsArray": "Неверная конфигурация LiteLLM: models должен быть массивом",
+    "invalidModelFormat": "Неверная конфигурация LiteLLM: неверный формат модели"
   },
   "lmstudio": {
-    "notConfigured": "No LM Studio configured"
+    "notConfigured": "LM Studio не настроен"
   },
   "azureFoundry": {
-    "baseUrlRequired": "Invalid Azure Foundry configuration: baseUrl is required",
-    "deploymentRequired": "Invalid Azure Foundry configuration: deploymentName is required",
+    "baseUrlRequired": "Неверная конфигурация Azure AI Foundry: baseUrl обязателен",
+    "deploymentRequired": "Неверная конфигурация Azure AI Foundry: deploymentName обязателен",
     "invalidAuthType": "Неверная конфигурация Azure AI Foundry: authType должен быть api-key или entra-id",
-    "invalidEnabled": "Invalid Azure Foundry configuration: enabled must be a boolean",
+    "invalidEnabled": "Неверная конфигурация Azure AI Foundry: enabled должен быть логическим значением",
     "invalidBaseUrl": "Неверная конфигурация Azure AI Foundry: некорректный формат base URL",
     "missingEndpoint": "Не указан endpoint Azure AI Foundry"
   },
   "connector": {
-    "protocolRequired": "Подключитьor URL must use http:// or https://",
-    "invalidUrl": "Invalid connector URL: {{url}}"
+    "protocolRequired": "URL коннектора должен начинаться с http:// или https://",
+    "invalidUrl": "Некорректный URL коннектора: {{url}}"
   },
   "settings": {
-    "invalidDebugFlag": "Invalid debug mode flag",
-    "invalidTheme": "Invalid theme value",
-    "invalidBaseUrl": "Invalid base URL"
+    "invalidDebugFlag": "Некорректный флаг режима отладки",
+    "invalidTheme": "Некорректное значение темы",
+    "invalidBaseUrl": "Некорректный базовый URL"
   },
   "i18n": {
-    "unsupportedLanguage": "Unsupported language"
+    "unsupportedLanguage": "Неподдерживаемый язык"
   },
   "url": {
-    "protocolNotAllowed": "Only http and https URLs are allowed"
+    "protocolNotAllowed": "Разрешены только URL с протоколами http и https"
   },
   "permission": {
-    "denied": "Permission denied",
-    "required": "Permission required"
+    "denied": "Доступ запрещён",
+    "required": "Требуется разрешение"
   },
   "generic": {
-    "unknown": "An unknown error occurred",
-    "tryAgain": "Please try again"
+    "unknown": "Произошла неизвестная ошибка",
+    "tryAgain": "Пожалуйста, попробуйте ещё раз"
   },
   "app": {
     "mustRunInDesktop": "Это приложение нужно запускать внутри десктоп‑приложения RodjerHelp.",
-    "unableToStart": "Unable to Start",
-    "updateRequired": "Update Required",
-    "schemaNewerMessage": "Эти данные созданы более новой версией RodjerHelp (schema v{{version}}).",
-    "schemaNewerDetail": "Ваше приложение поддерживает schema до v{{version}}. Обновите RodjerHelp, чтобы продолжить."
+    "unableToStart": "Не удалось запустить",
+    "updateRequired": "Требуется обновление",
+    "schemaNewerMessage": "Эти данные созданы более новой версией RodjerHelp (схема v{{version}}).",
+    "schemaNewerDetail": "Ваше приложение поддерживает схему до v{{version}}. Обновите RodjerHelp, чтобы продолжить."
   },
   "auth": {
-    "sessionExpired": "{{provider}} Session Expired",
-    "reLoginTo": "Re-login to {{provider}}",
+    "sessionExpired": "Сессия {{provider}} истекла",
+    "reLoginTo": "Перезайдите в {{provider}}",
     "failed": "Ошибка авторизации",
     "missingToken": "Не найден токен доступа",
-    "invalidCallback": "Некорректный callback авторизации"
+    "invalidCallback": "Некорректный ответ авторизации"
   }
 }

@@ -71,7 +71,7 @@ const DialogContent = React.forwardRef<
           initial={{ opacity: 0 }}
           animate={{ opacity: isOpen ? 1 : 0 }}
           transition={{ duration: EXIT_ANIMATION_DURATION / 1000 }}
-          className="fixed inset-0 z-50 bg-white/60 backdrop-blur-[12px]"
+          className="fixed inset-0 z-50 bg-[rgba(2,6,14,0.58)] backdrop-blur-[18px]"
         />
       </DialogPrimitive.Overlay>
       <DialogPrimitive.Content
@@ -90,7 +90,7 @@ const DialogContent = React.forwardRef<
           }}
           transition={{ duration: EXIT_ANIMATION_DURATION / 1000, ease: 'easeOut' }}
           className={cn(
-            'relative grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg',
+            'macos26-dialog relative grid w-full max-w-lg gap-4 border border-white/10 bg-[rgba(12,16,24,0.82)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.5)] sm:rounded-[24px]',
             className,
           )}
         >

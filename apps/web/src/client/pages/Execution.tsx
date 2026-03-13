@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
-import { getRodjerHelp } from '../lib/rodjerhelp';
+import { getRodjerHelp, type PickedFile } from '../lib/rodjerhelp';
 import { springs } from '../lib/animations';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   Square,
   Download,
   CaretDown,
+  Paperclip,
+  X,
 } from '@phosphor-icons/react';
 import { isWaitingForUser } from '../lib/waiting-detection';
 import { SettingsDialog } from '../components/layout/SettingsDialog';
@@ -60,6 +62,9 @@ export function ExecutionPage() {
   >('providers');
   const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   const pendingSpeechFollowUpRef = useRef<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<PickedFile[]>([]);
+  const [isDragOverFollowUp, setIsDragOverFollowUp] = useState(false);
+  const dragDepthRef = useRef(0);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -78,6 +83,7 @@ export function ExecutionPage() {
     respondToPermission,
     sendFollowUp,
     interruptTask,
+    startTask,
     setupProgress,
     setupProgressTaskId,
     setupDownloadStep,
@@ -150,6 +156,8 @@ export function ExecutionPage() {
       setDebugLogs([]);
       setCurrentTool(null);
       setCurrentToolInput(null);
+      setAttachedFiles([]);
+      void (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
       accomplish.getTodosForTask(id).then((todos) => {
         useTaskStore.getState().setTodos(id, todos);
       });
@@ -235,14 +243,150 @@ export function ExecutionPage() {
   const hasSession = currentTask?.sessionId || currentTask?.result?.sessionId;
   const canFollowUp = isComplete && (hasSession || currentTask?.status === 'interrupted');
 
+  const focusFollowUpInput = useCallback((delay = 0) => {
+    window.setTimeout(() => {
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
+      document.body.removeAttribute('inert');
+      document.documentElement.removeAttribute('inert');
+      const input = followUpInputRef.current;
+      if (input && !input.disabled) {
+        input.focus();
+        const valueLength = input.value?.length ?? 0;
+        try {
+          input.setSelectionRange(valueLength, valueLength);
+        } catch {
+          // ignore selection errors for unsupported environments
+        }
+      }
+    }, delay);
+  }, []);
+
+  const syncPickedFiles = useCallback((files: PickedFile[]) => {
+    void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(files);
+  }, []);
+
+  const mergePickedFiles = useCallback((incoming: PickedFile[]) => {
+    if (!incoming.length) return;
+    setAttachedFiles((prev) => {
+      const seen = new Set(prev.map((file) => file.path));
+      const nextFiles = [...prev];
+      for (const file of incoming) {
+        if (!seen.has(file.path)) {
+          nextFiles.push(file);
+          seen.add(file.path);
+        }
+      }
+      syncPickedFiles(nextFiles);
+      return nextFiles;
+    });
+    focusFollowUpInput(0);
+  }, [focusFollowUpInput, syncPickedFiles]);
+
+  const handleAttachFiles = useCallback(async () => {
+    try {
+      const files = await accomplish.pickChatFiles();
+      if (!files?.length) return;
+      mergePickedFiles(files);
+    } catch (err) {
+      console.error('Не удалось выбрать файлы:', err);
+    }
+  }, [accomplish, mergePickedFiles]);
+
+  const handleRemoveAttachment = useCallback((path: string) => {
+    setAttachedFiles((prev) => {
+      const nextFiles = prev.filter((file) => file.path !== path);
+      syncPickedFiles(nextFiles);
+      return nextFiles;
+    });
+    focusFollowUpInput(0);
+  }, [focusFollowUpInput, syncPickedFiles]);
+
+  const normalizeDroppedFiles = useCallback(async (fileList: FileList | null): Promise<PickedFile[]> => {
+    if (!fileList) return [];
+
+    const dropped = Array.from(fileList);
+    if (window.accomplish?.resolveDroppedChatFiles) {
+      const resolved = await window.accomplish.resolveDroppedChatFiles(dropped);
+      if (resolved.length > 0) return resolved;
+    }
+
+    const seen = new Set<string>();
+    const files: PickedFile[] = [];
+
+    for (const file of dropped) {
+      const filePath = String((file as File & { path?: string }).path || '').trim();
+      if (!filePath || seen.has(filePath)) continue;
+      seen.add(filePath);
+      files.push({
+        path: filePath,
+        name: file.name,
+        size: file.size,
+        lastModified: file.lastModified,
+      });
+    }
+
+    return files;
+  }, []);
+
+  const handleDroppedFiles = useCallback(async (fileList: FileList | null) => {
+    const droppedFiles = await normalizeDroppedFiles(fileList);
+    if (!droppedFiles.length) return;
+    mergePickedFiles(droppedFiles);
+  }, [mergePickedFiles, normalizeDroppedFiles]);
+
   useEffect(() => {
     if (canFollowUp) {
-      followUpInputRef.current?.focus();
+      focusFollowUpInput(0);
     }
-  }, [canFollowUp]);
+  }, [canFollowUp, focusFollowUpInput]);
+
+  useEffect(() => {
+    if (showSettingsDialog || !canFollowUp) return;
+
+    const restoreFocus = () => focusFollowUpInput(0);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        focusFollowUpInput(30);
+      }
+    };
+
+    window.addEventListener('focus', restoreFocus);
+    window.addEventListener('pageshow', restoreFocus);
+    window.addEventListener('mouseup', restoreFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', restoreFocus);
+      window.removeEventListener('pageshow', restoreFocus);
+      window.removeEventListener('mouseup', restoreFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [canFollowUp, focusFollowUpInput, showSettingsDialog]);
+
+  useEffect(() => {
+    if (!canFollowUp || showSettingsDialog) return;
+
+    const restoreFocus = () => focusFollowUpInput(0);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        focusFollowUpInput(30);
+      }
+    };
+
+    window.addEventListener('focus', restoreFocus);
+    window.addEventListener('pageshow', restoreFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', restoreFocus);
+      window.removeEventListener('pageshow', restoreFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [canFollowUp, focusFollowUpInput, showSettingsDialog]);
 
   const handleFollowUp = useCallback(async () => {
-    if (!followUp.trim()) return;
+    if (!followUp.trim() && attachedFiles.length === 0) return;
     const isE2EMode = await accomplish.isE2EMode();
     if (!isE2EMode) {
       const settings = await accomplish.getProviderSettings();
@@ -253,15 +397,21 @@ export function ExecutionPage() {
         return;
       }
     }
-    await sendFollowUp(followUp);
+    const message = followUp.trim() || 'Проанализируй прикреплённые файлы и продолжай задачу, используя их как источник.';
+    await sendFollowUp(message);
     setFollowUp('');
-  }, [followUp, accomplish, sendFollowUp]);
+    setAttachedFiles([]);
+    await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
+  }, [attachedFiles.length, followUp, accomplish, sendFollowUp]);
 
   const handleSettingsDialogClose = (open: boolean) => {
     setShowSettingsDialog(open);
     if (!open) {
       setPendingFollowUp(null);
       setSettingsInitialTab('providers');
+      if (canFollowUp) {
+        focusFollowUpInput(120);
+      }
     }
   };
 
@@ -270,7 +420,13 @@ export function ExecutionPage() {
     if (pendingFollowUp) {
       await sendFollowUp(pendingFollowUp);
       setFollowUp('');
+      setAttachedFiles([]);
+      await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
       setPendingFollowUp(null);
+      return;
+    }
+    if (canFollowUp) {
+      focusFollowUpInput(120);
     }
   };
 
@@ -287,6 +443,47 @@ export function ExecutionPage() {
     }
     await sendFollowUp('continue');
   };
+
+  const handleRestartTask = useCallback(async () => {
+    if (!currentTask || isLoading) return;
+
+    const isE2EMode = await accomplish.isE2EMode();
+    if (!isE2EMode) {
+      const settings = await accomplish.getProviderSettings();
+      if (!hasAnyReadyProvider(settings)) {
+        setSettingsInitialTab('providers');
+        setShowSettingsDialog(true);
+        return;
+      }
+    }
+
+    const sessionId = currentTask.sessionId || currentTask.result?.sessionId;
+
+    if (sessionId) {
+      await sendFollowUp('continue');
+      return;
+    }
+
+    const prompt = currentTask.prompt?.trim();
+    if (!prompt) return;
+
+    const newTask = await startTask({
+      prompt,
+      taskId: `task_${Date.now()}`,
+    });
+
+    if (newTask) {
+      navigate(`/execution/${newTask.id}`);
+    }
+  }, [
+    accomplish,
+    currentTask,
+    isLoading,
+    loadTaskById,
+    navigate,
+    startTask,
+    updateTaskStatus,
+  ]);
 
   const handleOpenSpeechSettings = useCallback(() => {
     setSettingsInitialTab('voice');
@@ -365,7 +562,7 @@ export function ExecutionPage() {
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 shrink-0">
             <CheckCircle className="h-3 w-3" />
             {t('status.completed')}
           </span>
@@ -708,7 +905,45 @@ export function ExecutionPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              <div className="rounded-xl border border-border bg-background shadow-sm transition-all duration-200 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+              {currentTask.status === 'failed' && hasSession && (
+                <div className="flex items-center justify-end gap-2">
+                  <Button onClick={handleRestartTask} variant="secondary" disabled={isLoading}>
+                    Возобновить задачу
+                  </Button>
+                  <Button onClick={() => navigate('/')} variant="ghost" disabled={isLoading}>
+                    {tCommon('buttons.startNewTask')}
+                  </Button>
+                </div>
+              )}
+              <div
+                className={`rounded-xl border border-border bg-background shadow-sm transition-all duration-200 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring ${isDragOverFollowUp ? 'border-primary ring-2 ring-primary/25' : ''}`}
+                onMouseDown={() => focusFollowUpInput(0)}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dragDepthRef.current += 1;
+                  setIsDragOverFollowUp(true);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = 'copy';
+                  if (!isDragOverFollowUp) setIsDragOverFollowUp(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+                  if (dragDepthRef.current === 0) setIsDragOverFollowUp(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dragDepthRef.current = 0;
+                  setIsDragOverFollowUp(false);
+                  void handleDroppedFiles(e.dataTransfer.files);
+                }}
+              >
                 <div className="px-4 pt-3 pb-2">
                   <textarea
                     ref={followUpInputRef}
@@ -718,6 +953,7 @@ export function ExecutionPage() {
                       e.target.style.height = 'auto';
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
                     }}
+                    onFocus={() => focusFollowUpInput(0)}
                     onKeyDown={(e) => {
                       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -740,6 +976,38 @@ export function ExecutionPage() {
                     data-testid="execution-follow-up-input"
                   />
                 </div>
+                {attachedFiles.length > 0 && (
+                  <div className="px-4 pb-2 flex flex-wrap gap-2">
+                    {attachedFiles.map((file) => (
+                      <div
+                        key={file.path}
+                        className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-muted/55 px-3 py-1.5 text-xs text-foreground shadow-sm transition-colors hover:bg-muted/75"
+                        title={file.path}
+                      >
+                        <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="max-w-[220px] truncate font-medium">{file.name}</span>
+                        <span className="shrink-0 text-muted-foreground/80">
+                          {file.size ? `${Math.max(1, Math.round(file.size / 1024))} КБ` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveAttachment(file.path);
+                          }}
+                          aria-label="Удалить вложение"
+                          title="Удалить"
+                        >
+                          <X className="h-3 w-3" weight="bold" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isDragOverFollowUp && (
+                  <div className="px-4 pb-2 text-xs text-primary">Отпустите файл, чтобы прикрепить его к сообщению</div>
+                )}
                 <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border/50">
                   <PlusMenu
                     onSkillSelect={(command) => {
@@ -754,6 +1022,15 @@ export function ExecutionPage() {
                     disabled={isLoading || speechInput.isRecording}
                   />
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAttachFiles}
+                      disabled={isLoading || speechInput.isRecording}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Прикрепить файл"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </button>
                     <ModelIndicator isRunning={false} onOpenSettings={handleOpenModelSettings} />
                     <div className="w-px h-6 bg-border flex-shrink-0" />
                     <SpeechInputButton
@@ -772,7 +1049,7 @@ export function ExecutionPage() {
                     <button
                       type="button"
                       onClick={handleFollowUp}
-                      disabled={!followUp.trim() || isLoading || speechInput.isRecording}
+                      disabled={(!followUp.trim() && attachedFiles.length === 0) || isLoading || speechInput.isRecording}
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title={tCommon('buttons.send')}
                     >
@@ -785,7 +1062,7 @@ export function ExecutionPage() {
           </div>
         )}
 
-        {/* Completed/Failed state (no session to continue) */}
+        {/* Состояние завершения/ошибки (нет сессии для продолжения) */}
         {isComplete && !canFollowUp && (
           <div className="flex-shrink-0 border-t border-border bg-card/50 px-6 py-4 text-center">
             <p className="text-sm text-muted-foreground mb-3">
@@ -796,7 +1073,12 @@ export function ExecutionPage() {
                     : currentTask.status,
               })}
             </p>
-            <div className="mt-3">
+            <div className="mt-3 flex items-center justify-center gap-3">
+              {currentTask.status === 'failed' && (
+                <Button onClick={handleRestartTask} variant="secondary">
+                  {hasSession ? 'Возобновить задачу' : 'Запустить заново'}
+                </Button>
+              )}
               <Button onClick={() => navigate('/')}>{tCommon('buttons.startNewTask')}</Button>
             </div>
           </div>

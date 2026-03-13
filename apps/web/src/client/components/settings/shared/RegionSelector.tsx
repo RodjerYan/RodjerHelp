@@ -53,9 +53,9 @@ export function RegionSelector({ value, onChange }: RegionSelectorProps) {
       value={value}
       onChange={onChange}
       label={t('bedrock.region')}
-      placeholder={t('bedrock.selectRegion', { defaultValue: 'Select region...' })}
-      searchPlaceholder={t('bedrock.searchRegions', { defaultValue: 'Search regions...' })}
-      emptyMessage={t('bedrock.noRegionsFound', { defaultValue: 'No regions found' })}
+      placeholder={t('bedrock.selectRegion', { defaultValue: 'Выберите регион...' })}
+      searchPlaceholder={t('bedrock.searchRegions', { defaultValue: 'Поиск регионов...' })}
+      emptyMessage={t('bedrock.noRegionsFound', { defaultValue: 'Регионы не найдены' })}
       testId="bedrock-region-select"
     />
   );

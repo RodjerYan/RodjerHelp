@@ -56,7 +56,7 @@ const config: Config = {
           DEFAULT: '#EE7909',
         },
         success: {
-          DEFAULT: '#019E55',
+          DEFAULT: '#0A84FF',
         },
         'provider-bg': 'hsl(var(--provider-bg))',
         'provider-bg-active': 'hsl(var(--provider-bg-active))',

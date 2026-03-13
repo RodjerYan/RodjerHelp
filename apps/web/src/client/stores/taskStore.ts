@@ -14,7 +14,10 @@ import {
 import { getRodjerHelp } from '../lib/rodjerhelp';
 
 // ATTACHMENTS_TASKSTORE_DIRECT_FIX
-const getPickedFilesForPrompt = async (): Promise<string[]> => {
+const MAX_ATTACHMENT_PREVIEW_CHARS_PER_FILE = 12000;
+const MAX_ATTACHMENT_PREVIEW_CHARS_TOTAL = 32000;
+
+const getPickedFilesForPrompt = async (preferEmpty = false): Promise<string[]> => {
   try {
     const w = window as any;
     const candidates = [
@@ -35,45 +38,73 @@ const getPickedFilesForPrompt = async (): Promise<string[]> => {
   return [];
 };
 
-const augmentPromptWithPickedFiles = async (text: string): Promise<string> => {
+const augmentPromptWithPickedFiles = async (text: string, preferEmpty = false): Promise<string> => {
   try {
     if (typeof text !== 'string') return text as any;
     if (text.includes('📎 Вложения:')) return text;
 
-    const paths = await getPickedFilesForPrompt();
+    const paths = preferEmpty ? [] : await getPickedFilesForPrompt(preferEmpty);
     if (!paths.length) return text;
 
-    const names = paths.map((p) => (String(p).split(/[\\/]/).pop() || String(p))).slice(0, 10);
-    const more = paths.length > 10 ? (' +' + String(paths.length - 10)) : '';
-    const header = '📎 Вложения: ' + names.join(', ') + more;
+    const names = paths
+      .map((p) => String(p).split(/[\\/]/).pop() || String(p))
+      .slice(0, 10);
+    const more = paths.length > 10 ? ` +${String(paths.length - 10)}` : '';
+    const header = `📎 Вложения: ${names.join(', ')}${more}`;
 
-    let fileBlock =
-      '\n\n[Attached file paths]\n' +
-      paths.map((p) => '- ' + p).join('\n');
+    let fileBlock = `\n\n[Attached files]\n${names.map((name) => `- ${name}`).join('\n')}`;
 
     try {
       const api = getRodjerHelp() as any;
       if (api && typeof api.readChatFiles === 'function') {
         const files = await api.readChatFiles(paths);
         if (Array.isArray(files) && files.length) {
-          fileBlock +=
-            '\n\n[Attached file contents]\n' +
-            files
-              .map((f: any) => {
-                const fp = f?.path || '';
-                const nm = f?.name || (String(fp).split(/[\\/]/).pop() || 'file');
-                const txt = typeof f?.text === 'string' ? f.text : '';
-                return '### ' + nm + '\nPath: ' + fp + '\n' + txt;
-              })
-              .join('\n\n');
+          let remaining = MAX_ATTACHMENT_PREVIEW_CHARS_TOTAL;
+          const sections: string[] = [];
+
+          for (const f of files) {
+            const fp = typeof f?.path === 'string' ? f.path : '';
+            const nm = f?.name || (String(fp).split(/[\\/]/).pop() || 'file');
+            const rawText = typeof f?.text === 'string' ? f.text : '';
+            const errorText =
+              typeof f?.error === 'string' && f.error.trim()
+                ? `Preview unavailable: ${f.error.trim()}`
+                : '';
+
+            let preview = rawText || errorText;
+            if (!preview) {
+              preview = 'Preview unavailable: file could not be read as text in desktop attachments.';
+            }
+
+            if (preview.length > MAX_ATTACHMENT_PREVIEW_CHARS_PER_FILE) {
+              preview = `${preview.slice(0, MAX_ATTACHMENT_PREVIEW_CHARS_PER_FILE)}\n[Preview truncated]`;
+            }
+
+            if (remaining <= 0) {
+              sections.push(`### ${nm}\n[Preview omitted: total attachment preview limit reached]`);
+              continue;
+            }
+
+            if (preview.length > remaining) {
+              preview = `${preview.slice(0, remaining)}\n[Preview truncated: total attachment preview limit reached]`;
+            }
+
+            remaining -= preview.length;
+            sections.push(`### ${nm}\n${preview}`);
+          }
+
+          if (sections.length) {
+            fileBlock += `\n\n[Attached file contents]\n${sections.join('\n\n')}`;
+          }
         }
       }
     } catch (e) {
       console.warn('[ATTACHMENTS_TASKSTORE_DIRECT_FIX/readChatFiles] failed', e);
     }
 
-    fileBlock += '\n\nUse these attached files as the source. Do NOT ask me again where the file is located.';
-    return header + '\n' + text + fileBlock;
+    fileBlock +=
+      '\n\nUse the attached file excerpts above as the source material. Do not try to open local file paths, do not launch a browser to find these files, and do not ask me again where the file is located.';
+    return `${header}\n${text}${fileBlock}`;
   } catch (e) {
     console.warn('[ATTACHMENTS_TASKSTORE_DIRECT_FIX/augment] failed', e);
     return text;
@@ -233,7 +264,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       void accomplish.logEvent({
         level: 'info',
         message: 'UI start task',
-        context: { prompt: config.prompt, taskId: config.taskId },
+        context: {
+          taskId: config.taskId,
+          promptLength: config.prompt?.length ?? 0,
+          hasAttachments: config.prompt?.includes('📎 Вложения:') ?? false,
+        },
       });
       const task = await accomplish.startTask(config);
       const currentTasks = get().tasks;
@@ -244,18 +279,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
       void accomplish.logEvent({
         level: 'info',
-        message: task.status === 'queued' ? 'UI task queued' : 'UI task started',
+        message: task.status === 'queued' ? 'UI: задача в очереди' : 'UI: задача запущена',
         context: { taskId: task.id, status: task.status },
       });
       return task;
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : 'Failed to start task',
+        error: err instanceof Error ? err.message : 'Не удалось запустить задачу',
         isLoading: false,
       });
       void accomplish.logEvent({
         level: 'error',
-        message: 'UI task start failed',
+        message: 'UI: запуск задачи не удался',
         context: { error: err instanceof Error ? err.message : String(err) },
       });
       return null;
@@ -267,10 +302,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getRodjerHelp();
     const { currentTask, startTask } = get();
     if (!currentTask) {
-      set({ error: 'No active task to continue' });
+      set({ error: 'Нет активной задачи для продолжения' });
       void accomplish.logEvent({
         level: 'warn',
-        message: 'UI follow-up failed: no active task',
+        message: 'UI: продолжение не удалось — нет активной задачи',
       });
       return;
     }
@@ -280,7 +315,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (!sessionId && currentTask.status === 'interrupted') {
       void accomplish.logEvent({
         level: 'info',
-        message: 'UI follow-up: starting fresh task (no session from interrupted task)',
+        message: 'UI: продолжение — запуск новой задачи (нет сессии от прерванной задачи)',
         context: { taskId: currentTask.id },
       });
       await startTask({ prompt: message });
@@ -288,10 +323,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
 
     if (!sessionId) {
-      set({ error: 'No session to continue - please start a new task' });
+      set({ error: 'Нет сессии для продолжения — начните новую задачу' });
       void accomplish.logEvent({
         level: 'warn',
-        message: 'UI follow-up failed: missing session',
+        message: 'UI: продолжение не удалось — отсутствует сессия',
         context: { taskId: currentTask.id },
       });
       return;
@@ -324,8 +359,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       void accomplish.logEvent({
         level: 'info',
-        message: 'UI follow-up sent',
-        context: { taskId: currentTask.id, message },
+        message: 'UI: продолжение отправлено',
+        context: {
+          taskId: currentTask.id,
+          messageLength: message?.length ?? 0,
+          hasAttachments: message?.includes('📎 Вложения:') ?? false,
+        },
       });
       const task = await accomplish.resumeSession(sessionId, message, currentTask.id);
 
@@ -336,7 +375,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
     } catch (err) {
       set((state) => ({
-        error: err instanceof Error ? err.message : 'Failed to send message',
+        error: err instanceof Error ? err.message : 'Не удалось отправить сообщение',
         isLoading: false,
         currentTask: state.currentTask ? { ...state.currentTask, status: 'failed' } : null,
         tasks: state.tasks.map((t) =>
@@ -345,7 +384,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
       void accomplish.logEvent({
         level: 'error',
-        message: 'UI follow-up failed',
+        message: 'UI: продолжение не удалось',
         context: {
           taskId: currentTask.id,
           error: err instanceof Error ? err.message : String(err),
@@ -360,7 +399,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (currentTask) {
       void accomplish.logEvent({
         level: 'info',
-        message: 'UI cancel task',
+        message: 'UI: отмена задачи',
         context: { taskId: currentTask.id },
       });
       await accomplish.cancelTask(currentTask.id);
@@ -379,7 +418,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (currentTask && currentTask.status === 'running') {
       void accomplish.logEvent({
         level: 'info',
-        message: 'UI interrupt task',
+        message: 'UI: прерывание задачи',
         context: { taskId: currentTask.id },
       });
       await accomplish.interruptTask(currentTask.id);
@@ -394,7 +433,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getRodjerHelp();
     void accomplish.logEvent({
       level: 'info',
-      message: 'UI permission response',
+      message: 'UI: ответ на запрос разрешения',
       context: { ...response },
     });
     await accomplish.respondToPermission(response);
@@ -405,7 +444,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getRodjerHelp();
     void accomplish.logEvent({
       level: 'debug',
-      message: 'UI task update received',
+      message: 'UI: получено обновление задачи',
       context: { ...event },
     });
     set((state) => {
@@ -449,7 +488,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           updatedCurrentTask = {
             ...state.currentTask,
             status: newStatus,
-            result: { status: 'error', error: event.error },
+            sessionId: event.sessionId || state.currentTask.sessionId,
+            result: {
+              status: 'error',
+              error: event.error,
+              sessionId: event.sessionId || state.currentTask.result?.sessionId,
+            },
           };
         }
       }
@@ -461,15 +505,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             ? {
                 ...t,
                 status: finalStatus,
+                ...(event.type === 'complete' && event.result?.sessionId
+                  ? { sessionId: event.result.sessionId }
+                  : {}),
+                ...(event.type === 'error' && event.sessionId ? { sessionId: event.sessionId } : {}),
                 ...(isCurrentTask && updatedCurrentTask
-                  ? { messages: updatedCurrentTask.messages }
+                  ? {
+                      messages: updatedCurrentTask.messages,
+                      ...(updatedCurrentTask.sessionId ? { sessionId: updatedCurrentTask.sessionId } : {}),
+                    }
                   : {}),
               }
             : t,
         );
       }
 
-      // Only clear todos if task is fully completed (not interrupted - user can still continue)
+      // Очищать todo только если задача полностью завершена (не прервана — пользователь может продолжить)
       let shouldClearTodos = false;
       if (
         (event.type === 'complete' || event.type === 'error') &&
@@ -492,7 +543,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const accomplish = getRodjerHelp();
     void accomplish.logEvent({
       level: 'debug',
-      message: 'UI task batch update received',
+      message: 'UI: получено пакетное обновление задачи',
       context: { taskId: event.taskId, messageCount: event.messages.length },
     });
     set((state) => {
@@ -552,7 +603,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   loadTaskById: async (taskId: string) => {
     const accomplish = getRodjerHelp();
     const task = await accomplish.getTask(taskId);
-    set({ currentTask: task, error: task ? null : 'Task not found' });
+    set({ currentTask: task, error: task ? null : 'Задача не найдена' });
   },
 
   deleteTask: async (taskId: string) => {

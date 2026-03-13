@@ -1,10 +1,10 @@
 /**
- * Speech Input Button Component
+ * Кнопка голосового ввода
  *
- * A microphone button that toggles recording and shows status during transcription.
- * Supports two modes:
- * 1. Click toggle: click to start, click again to stop and transcribe
- * 2. Push-to-talk: hold Alt (configurable) to record, release to transcribe
+ * Кнопка микрофона, которая переключает запись и показывает статус распознавания.
+ * Поддерживает два режима:
+ * 1. Клик‑переключатель: нажмите для старта, нажмите снова для остановки и распознавания
+ * 2. Нажми‑и‑говори: удерживайте Alt (настраиваемо) для записи, отпустите для распознавания
  */
 
 import React, { useMemo } from 'react';
@@ -14,75 +14,75 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SpeechInputButtonProps {
-  /**
-   * Whether currently recording
-   */
+   /**
+    * Запись активна
+    */
   isRecording: boolean;
 
-  /**
-   * Whether currently transcribing
-   */
+   /**
+    * Идёт распознавание
+    */
   isTranscribing: boolean;
 
-  /**
-   * Current recording duration in milliseconds
-   */
+   /**
+    * Текущая длительность записи в миллисекундах
+    */
   recordingDuration?: number;
 
-  /**
-   * Error state
-   */
+   /**
+    * Состояние ошибки
+    */
   error?: Error | null;
 
-  /**
-   * Whether speech input is configured
-   */
+   /**
+    * Голосовой ввод настроен
+    */
   isConfigured?: boolean;
 
-  /**
-   * Whether disabled (e.g., during task execution)
-   */
+   /**
+    * Отключено (например, во время выполнения задачи)
+    */
   disabled?: boolean;
 
-  /**
-   * Called when user clicks to start recording
-   */
+   /**
+    * Вызывается при клике для начала записи
+    */
   onStartRecording?: () => void;
 
-  /**
-   * Called when user clicks to stop recording
-   */
+   /**
+    * Вызывается при клике для остановки записи
+    */
   onStopRecording?: () => void;
 
-  /**
-   * Called when user clicks to cancel recording
-   */
+   /**
+    * Вызывается при клике для отмены записи
+    */
   onCancel?: () => void;
 
-  /**
-   * Called when user clicks to retry
-   */
+   /**
+    * Вызывается при клике для повтора
+    */
   onRetry?: () => void;
 
-  /**
-   * Called when user clicks the button while not configured
-   * (to open settings dialog)
-   */
+   /**
+    * Вызывается при клике, когда ввод не настроен
+    * (чтобы открыть настройки)
+    */
   onOpenSettings?: () => void;
 
-  /**
-   * Size variant
-   */
+   /**
+    * Вариант размера
+    */
   size?: 'sm' | 'md' | 'lg';
 
-  /**
-   * Custom CSS classes
-   */
+   /**
+    * Пользовательские CSS‑классы
+    */
   className?: string;
 
-  /**
-   * Custom tooltip text
-   */
+   /**
+    * Пользовательский текст тултипа
+    */
   tooltipText?: string;
 }
 
@@ -116,22 +116,22 @@ export function SpeechInputButton({
 
   const buttonClasses = useMemo(() => {
     if (isRecording) {
-      // Recording state: red button with animation
+      // Состояние записи: красная кнопка с анимацией
       return 'bg-transparent text-red-600 hover:text-red-700';
     }
     if (isTranscribing) {
-      // Transcribing state: blue button
+      // Состояние распознавания: синяя кнопка
       return 'bg-transparent text-blue-600 hover:text-blue-700 cursor-wait';
     }
     if (error) {
-      // Error state: red/orange button
+      // Состояние ошибки: красно‑оранжевая кнопка
       return 'bg-transparent text-orange-600 hover:text-orange-700';
     }
     if (!isConfigured) {
-      // Not configured: show muted style but still clickable (will open settings)
+      // Не настроено: приглушённый стиль, но кликабельно (откроет настройки)
       return 'bg-transparent text-muted-foreground hover:text-foreground';
     }
-    // Normal state: primary color
+    // Обычное состояние: основной цвет
     return 'bg-transparent text-foreground hover:text-primary';
   }, [isRecording, isTranscribing, error, isConfigured]);
 
@@ -149,7 +149,7 @@ export function SpeechInputButton({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!isConfigured) {
-        // Open settings dialog when not configured
+        // Открыть настройки, если ввод не настроен
         onOpenSettings?.();
       } else if (isRecording) {
         onStopRecording?.();
@@ -197,7 +197,7 @@ export function SpeechInputButton({
         </TooltipContent>
       </Tooltip>
 
-      {/* Recording timer */}
+      {/* Таймер записи */}
       {isRecording && (
         <div className="text-xs font-mono text-red-600 dark:text-red-400 shrink-0 min-w-[40px]">
           {formatDuration(recordingDuration)}
@@ -206,12 +206,12 @@ export function SpeechInputButton({
 
       {/* Status indicator */}
       {isTranscribing && (
-        <div className="text-xs text-blue-600 dark:text-blue-400 shrink-0">Processing...</div>
+        <div className="text-xs text-blue-600 dark:text-blue-400 shrink-0">Обработка...</div>
       )}
 
       {/* Error retry helper text */}
       {error && !isRecording && !isTranscribing && (
-        <div className="text-xs text-orange-600 dark:text-orange-400 shrink-0">Retry</div>
+        <div className="text-xs text-orange-600 dark:text-orange-400 shrink-0">Повторить</div>
       )}
     </div>
   );

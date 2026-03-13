@@ -7,6 +7,7 @@ import type { Skill } from '@accomplish_ai/agent-core/common';
 import { Input } from '@/components/ui/input';
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import rodjerHelpFavicon from '/assets/rodjerhelp-favicon.png';
+import { localizeSkillForRu } from '@/lib/skillLocalization';
 
 interface SkillsSubmenuProps {
   skills: Skill[];
@@ -31,17 +32,21 @@ export function SkillsSubmenu({
   const filteredSkills = useMemo(() => {
     if (!searchQuery.trim()) return skills;
     const query = searchQuery.toLowerCase();
-    return skills.filter(
-      (s) =>
+    return skills.filter((s) => {
+      const localized = localizeSkillForRu(s);
+      return (
+        localized.name.toLowerCase().includes(query) ||
+        localized.description.toLowerCase().includes(query) ||
         s.name.toLowerCase().includes(query) ||
         s.description.toLowerCase().includes(query) ||
-        s.command.toLowerCase().includes(query),
-    );
+        s.command.toLowerCase().includes(query)
+      );
+    });
   }, [skills, searchQuery]);
 
   return (
     <div className="flex flex-col">
-      {/* Search Input */}
+      {/* Поле поиска */}
       <div className="p-2">
         <Input
           type="text"
@@ -58,20 +63,22 @@ export function SkillsSubmenu({
 
       <DropdownMenuSeparator />
 
-      {/* Skills List */}
+      {/* Список навыков */}
       <div className="max-h-[300px] overflow-y-auto">
         {filteredSkills.length === 0 ? (
           <div className="p-3 text-center text-sm text-muted-foreground">
             {t('skills.noSkillsFound')}
           </div>
         ) : (
-          filteredSkills.map((skill) => (
+          filteredSkills.map((skill) => {
+            const localized = localizeSkillForRu(skill);
+            return (
             <button
               key={skill.id}
               onClick={() => onSkillSelect(skill.command)}
               className="w-full px-3 py-2 text-left hover:bg-accent transition-colors"
             >
-              <div className="text-[13px] font-semibold text-foreground">{skill.name}</div>
+              <div className="text-[13px] font-semibold text-foreground">{localized.name}</div>
 
               <div className="mt-0.5">
                 <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
@@ -110,16 +117,16 @@ export function SkillsSubmenu({
               </div>
 
               <div className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
-                {skill.description}
+                {localized.description}
               </div>
             </button>
-          ))
+          );})
         )}
       </div>
 
       <DropdownMenuSeparator />
 
-      {/* Footer Actions */}
+      {/* Действия внизу */}
       <div className="flex gap-2 p-2.5">
         <button
           onClick={onCreateNewSkill}
