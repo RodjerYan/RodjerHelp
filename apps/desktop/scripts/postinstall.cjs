@@ -12,6 +12,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { ensureBetterSqliteElectronBuild } = require('./ensure-better-sqlite3-electron.cjs');
 
 // Prevent infinite recursion when npm install triggers parent postinstall
 // This happens on Windows where npm walks up to find package.json
@@ -42,40 +43,13 @@ function runCommand(command, description) {
 }
 
 if (isWindows) {
-  // On Windows, we need to install Electron-compatible prebuilt binaries for better-sqlite3
-  // node-pty has working prebuilt binaries, so we skip it
-  console.log('\n> Windows: Installing Electron-compatible better-sqlite3 prebuild...');
-
-  // Get the Electron version from package.json
-  const packageJson = require('../package.json');
-  const electronVersion = packageJson.devDependencies?.electron?.replace('^', '') || '35.0.0';
-  console.log(`> Electron version: ${electronVersion}`);
-
-  // Find better-sqlite3 in pnpm store and install Electron prebuild
-  const betterSqlite3Path = findBetterSqlite3();
-  if (betterSqlite3Path) {
-    console.log(`> Found better-sqlite3 at: ${betterSqlite3Path}`);
-    try {
-      // Remove existing build to force prebuild-install to run
-      const buildPath = path.join(betterSqlite3Path, 'build');
-      if (fs.existsSync(buildPath)) {
-        fs.rmSync(buildPath, { recursive: true, force: true });
-      }
-
-      // Use prebuild-install to get Electron-compatible binary
-      execSync(`npx prebuild-install --runtime electron --target ${electronVersion}`, {
-        stdio: 'inherit',
-        cwd: betterSqlite3Path,
-        shell: true,
-      });
-      console.log('> better-sqlite3 Electron prebuild installed successfully');
-    } catch (error) {
-      console.error('> Failed to install better-sqlite3 prebuild:', error.message);
-      console.error('> The app may not work correctly in packaged mode.');
-      // Don't exit - the app might still work in development
-    }
-  } else {
-    console.warn('> Warning: better-sqlite3 not found, skipping prebuild installation');
+  console.log('\n> Windows: ensuring Electron-compatible better-sqlite3 build...');
+  try {
+    ensureBetterSqliteElectronBuild({ desktopRoot: path.join(__dirname, '..') });
+    console.log('> better-sqlite3 Electron build is ready');
+  } catch (error) {
+    console.error('> Failed to ensure better-sqlite3 Electron build:', error.message);
+    console.error('> The app may not work correctly until the native module is rebuilt.');
   }
 
   // Verify node-pty prebuilds exist
@@ -130,10 +104,6 @@ console.log('\n> Postinstall complete!');
 
 function findNodePty() {
   return findPackage('node-pty');
-}
-
-function findBetterSqlite3() {
-  return findPackage('better-sqlite3');
 }
 
 function findPackage(packageName) {

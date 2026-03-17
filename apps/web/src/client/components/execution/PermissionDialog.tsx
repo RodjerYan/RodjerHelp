@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Warning, WarningCircle, File, Brain } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { getLastPickedChatFiles } from '../../lib/rodjerhelp';
 
 function getOperationBadgeClasses(operation?: string): string {
   switch (operation) {
@@ -48,7 +49,6 @@ interface PermissionDialogProps {
 export function PermissionDialog({ permissionRequest, onRespond }: PermissionDialogProps) {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
-
   const autoHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -63,34 +63,21 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
 
     const run = async () => {
       try {
-        const candidates = [
-          (window as any)?.accomplish?.getLastPickedChatFiles,
-          (window as any)?.rodjerhelpExtras?.getLastPickedChatFiles,
-          (window as any)?.getLastPickedChatFiles,
-        ] as Array<(() => Promise<string[]>) | undefined>;
-
-        let paths: string[] = [];
-        for (const getter of candidates) {
-          if (typeof getter === 'function') {
-            const val = await getter();
-            const arr = Array.isArray(val) ? val.filter(Boolean).map(String) : [];
-            if (arr.length) {
-              paths = arr;
-              break;
-            }
-          }
-        }
+        const paths = await getLastPickedChatFiles();
 
         if (!paths.length) return;
 
-        const title = (document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || '').trim();
+        const title = (
+          document.querySelector('h1,h2,h3,[role="heading"]')?.textContent || ''
+        ).trim();
         const titleText = title.toLowerCase();
         const firstPath = paths[0];
 
         const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[];
         const submitBtn =
-          buttons.find((b) => /submit/i.test(b.textContent || '') || /отправ/i.test(b.textContent || '')) ||
-          null;
+          buttons.find(
+            (b) => /submit/i.test(b.textContent || '') || /отправ/i.test(b.textContent || ''),
+          ) || null;
 
         const optionCandidates = Array.from(
           document.querySelectorAll('button, [role="button"], [data-radix-collection-item]'),
@@ -111,7 +98,9 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
         let handled = false;
 
         if (/(данные|источник)/i.test(titleText)) {
-          const option = optionCandidates.find((el) => /(excel|csv|файл)/i.test((el.textContent || '').trim()));
+          const option = optionCandidates.find((el) =>
+            /(excel|csv|файл)/i.test((el.textContent || '').trim()),
+          );
           option?.click();
           submitBtn?.click();
           handled = true;
@@ -381,7 +370,9 @@ export function PermissionDialog({ permissionRequest, onRespond }: PermissionDia
                 </p>
                 {permissionRequest.toolName && (
                   <div className="mb-4 p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-                    <p className="text-muted-foreground mb-1">Инструмент: {permissionRequest.toolName}</p>
+                    <p className="text-muted-foreground mb-1">
+                      Инструмент: {permissionRequest.toolName}
+                    </p>
                     <pre className="text-foreground">
                       {JSON.stringify(permissionRequest.toolInput, null, 2)}
                     </pre>

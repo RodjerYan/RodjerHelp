@@ -108,11 +108,7 @@ export default function Sidebar() {
         <div className="flex items-center justify-between border-t border-white/10 px-3 py-4">
           {/* Logo - Bottom Left */}
           <div className="flex items-center">
-            <img
-              src={logoImage}
-              alt="RodjerHelp"
-              style={{ height: '32px', paddingLeft: '6px' }}
-            />
+            <img src={logoImage} alt="RodjerHelp" style={{ height: '32px', paddingLeft: '6px' }} />
           </div>
 
           {/* Settings Button - Bottom Right */}

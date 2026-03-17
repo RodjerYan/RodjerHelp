@@ -10,6 +10,7 @@
 // Task types
 export type {
   TaskStatus,
+  TaskPersonaMode,
   TaskConfig,
   Task,
   TaskAttachment,
@@ -123,6 +124,13 @@ export type {
   OAuthClientRegistration,
   McpConnector,
 } from './common/types/connector.js';
+
+// Learning types
+export type {
+  LearningInsightCategory,
+  LearningInsight,
+  LearningSettings,
+} from './common/types/learning.js';
 
 // Other types
 export type { TodoItem } from './common/types/todo.js';

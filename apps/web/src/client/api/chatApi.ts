@@ -1,8 +1,4 @@
-export async function sendChatMessage(
-  apiBaseUrl: string,
-  message: string,
-  file?: File | null,
-) {
+export async function sendChatMessage(apiBaseUrl: string, message: string, file?: File | null) {
   const formData = new FormData();
   formData.append('message', message);
 

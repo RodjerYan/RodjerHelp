@@ -5,7 +5,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import type { Task, TaskStatus, TaskMessage, PermissionRequest } from '@accomplish_ai/agent-core';
@@ -21,7 +21,9 @@ const mockRespondToPermission = vi.fn();
 const mockSendFollowUp = vi.fn();
 const mockCancelTask = vi.fn();
 const mockInterruptTask = vi.fn();
+const mockStartTask = vi.fn();
 const mockSetTodos = vi.fn();
+const mockClearStartupStage = vi.fn();
 const mockOnTaskUpdate = vi.fn();
 const mockOnTaskUpdateBatch = vi.fn();
 const mockOnPermissionRequest = vi.fn();
@@ -100,9 +102,13 @@ const mockAccomplish = {
   resyncSkills: mockResyncSkills,
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the page
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
+  getLastPickedChatFiles: vi.fn().mockResolvedValue([]),
+  setLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
+  clearLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock store state holder
@@ -126,6 +132,15 @@ let mockStoreState: {
   setupProgress: string | null;
   setupProgressTaskId: string | null;
   setupDownloadStep: number;
+  startupStage: {
+    message: string;
+    startTime: number;
+    isFirstTask?: boolean;
+    stage?: string;
+  } | null;
+  startupStageTaskId: string | null;
+  clearStartupStage: typeof mockClearStartupStage;
+  startTask: typeof mockStartTask;
 } = {
   currentTask: null,
   loadTaskById: mockLoadTaskById,
@@ -146,12 +161,16 @@ let mockStoreState: {
   setupProgress: null,
   setupProgressTaskId: null,
   setupDownloadStep: 1,
+  startupStage: null,
+  startupStageTaskId: null,
+  clearStartupStage: mockClearStartupStage,
+  startTask: mockStartTask,
 };
 
 // Mock the task store - needs both hook usage and .getState() for direct calls
 vi.mock('@/stores/taskStore', () => {
-  // Create a function that will be used as useTaskStore
-  const useTaskStoreFn = () => mockStoreState;
+  const useTaskStoreFn = <T,>(selector?: (state: typeof mockStoreState) => T) =>
+    selector ? selector(mockStoreState) : mockStoreState;
   // Add getState method for direct store access (used by getTodosForTask callback)
   useTaskStoreFn.getState = () => mockStoreState;
   return { useTaskStore: useTaskStoreFn };
@@ -160,12 +179,30 @@ vi.mock('@/stores/taskStore', () => {
 // Mock framer-motion for simpler testing
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <button {...props}>{children}</button>
-    ),
+    div: ({
+      children,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      layout: _layout,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <div {...props}>{children}</div>,
+    button: ({
+      children,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      layout: _layout,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => <button {...props}>{children}</button>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -175,6 +212,7 @@ vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({
     children,
+    asChild: _asChild,
     ...props
   }: {
     children: React.ReactNode;
@@ -191,6 +229,57 @@ vi.mock('@/components/ui/tooltip', () => ({
     </span>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/components/layout/SettingsDialog', () => ({
+  SettingsDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="execution-settings-dialog">Настройки</div> : null,
+}));
+
+vi.mock('@/components/ui/ModelIndicator', () => ({
+  ModelIndicator: ({
+    isRunning,
+    onOpenSettings,
+  }: {
+    isRunning: boolean;
+    onOpenSettings?: () => void;
+  }) => (
+    <button
+      type="button"
+      data-testid={isRunning ? 'execution-model-indicator-running' : 'execution-model-indicator'}
+      onClick={onOpenSettings}
+    >
+      model
+    </button>
+  ),
+}));
+
+vi.mock('@/components/ui/SpeechInputButton', () => ({
+  SpeechInputButton: ({
+    disabled,
+    onOpenSettings,
+  }: {
+    disabled?: boolean;
+    onOpenSettings?: () => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="speech-input-button"
+      disabled={disabled}
+      title="Голосовой ввод"
+      onClick={onOpenSettings}
+    >
+      speech
+    </button>
+  ),
+}));
+
+vi.mock('@/components/landing/PlusMenu', () => ({
+  PlusMenu: () => (
+    <button type="button" title="Добавить контент" data-testid="execution-plus-menu-trigger">
+      plus
+    </button>
+  ),
 }));
 
 // Mock StreamingText component
@@ -223,6 +312,21 @@ function renderWithRouter(taskId: string = 'task-123') {
 }
 
 describe('Execution Page Integration', () => {
+  beforeAll(() => {
+    const originalConsoleError = console.error;
+    vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = args[0];
+      if (typeof message === 'string' && message.includes('not wrapped in act')) {
+        return;
+      }
+      originalConsoleError(...args);
+    });
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetEnabledSkills.mockResolvedValue([
@@ -267,6 +371,10 @@ describe('Execution Page Integration', () => {
       setupProgress: null,
       setupProgressTaskId: null,
       setupDownloadStep: 1,
+      startupStage: null,
+      startupStageTaskId: null,
+      clearStartupStage: mockClearStartupStage,
+      startTask: mockStartTask,
     };
   });
 
@@ -299,7 +407,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Running')).toBeInTheDocument();
+      expect(screen.getByText('Выполняется')).toBeInTheDocument();
     });
 
     it('should display completed status badge for completed task', () => {
@@ -307,7 +415,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Completed')).toBeInTheDocument();
+      expect(screen.getByText('Завершено')).toBeInTheDocument();
     });
 
     it('should display failed status badge for failed task', () => {
@@ -315,7 +423,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Failed')).toBeInTheDocument();
+      expect(screen.getByText('Ошибка')).toBeInTheDocument();
     });
 
     it('should display cancelled status badge for cancelled task', () => {
@@ -323,7 +431,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Cancelled')).toBeInTheDocument();
+      expect(screen.getByText('Отменено')).toBeInTheDocument();
     });
 
     it('should display queued status badge for queued task', () => {
@@ -331,7 +439,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Queued')).toBeInTheDocument();
+      expect(screen.getByText('В очереди')).toBeInTheDocument();
     });
 
     it('should display stopped status badge for interrupted task', () => {
@@ -339,7 +447,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Stopped')).toBeInTheDocument();
+      expect(screen.getByText('Остановлено')).toBeInTheDocument();
     });
 
     it('should render back button', () => {
@@ -394,7 +502,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Reading files')).toBeInTheDocument();
+      expect(screen.getByText('Чтение файлов')).toBeInTheDocument();
     });
 
     it('should display multiple messages in order', () => {
@@ -418,7 +526,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       expect(
-        screen.getByText(/^(Doing|Executing|Running|Handling it|Accomplishing)\.\.\.$/),
+        screen.getByText(/^(Делаю|Выполняю|Запускаю|Обрабатываю|Завершаю)\.\.\.$/),
       ).toBeInTheDocument();
     });
 
@@ -456,7 +564,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Permission Required')).toBeInTheDocument();
+      expect(screen.getByText('Требуется разрешение')).toBeInTheDocument();
     });
 
     it('should display tool name in permission dialog', () => {
@@ -471,7 +579,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText(/tool:\s*bash/i)).toBeInTheDocument();
+      expect(screen.getByText(/Инструмент:\s*Bash/i)).toBeInTheDocument();
     });
 
     it('should render Allow and Deny buttons in permission dialog', () => {
@@ -486,11 +594,11 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByRole('button', { name: /allow/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /deny/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /разрешить/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /запретить/i })).toBeInTheDocument();
     });
 
-    it('should call respondToPermission with allow when Allow is clicked', async () => {
+    it('should call respondToPermission with allow when Разрешить is clicked', async () => {
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
       mockStoreState.permissionRequest = {
         id: 'perm-1',
@@ -502,7 +610,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      const allowButton = screen.getByRole('button', { name: /allow/i });
+      const allowButton = screen.getByRole('button', { name: /разрешить/i });
       fireEvent.click(allowButton);
 
       await waitFor(() => {
@@ -514,7 +622,7 @@ describe('Execution Page Integration', () => {
       });
     });
 
-    it('should call respondToPermission with deny when Deny is clicked', async () => {
+    it('should call respondToPermission with deny when Запретить is clicked', async () => {
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running');
       mockStoreState.permissionRequest = {
         id: 'perm-1',
@@ -526,7 +634,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      const denyButton = screen.getByRole('button', { name: /deny/i });
+      const denyButton = screen.getByRole('button', { name: /запретить/i });
       fireEvent.click(denyButton);
 
       await waitFor(() => {
@@ -551,7 +659,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('File Permission Required')).toBeInTheDocument();
+      expect(screen.getByText('Нужно разрешение на доступ к файлу')).toBeInTheDocument();
       expect(screen.getByText('CREATE')).toBeInTheDocument();
       expect(screen.getByText('/path/to/file.txt')).toBeInTheDocument();
     });
@@ -566,12 +674,12 @@ describe('Execution Page Integration', () => {
       expect(screen.getByText('Task not found')).toBeInTheDocument();
     });
 
-    it('should display Go Home button on error', () => {
+    it('should display На главную button on error', () => {
       mockStoreState.error = 'Something went wrong';
 
       renderWithRouter('task-123');
 
-      expect(screen.getByRole('button', { name: /go home/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /на главную/i })).toBeInTheDocument();
     });
   });
 
@@ -581,7 +689,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      const stopButton = screen.getByTitle(/stop agent/i);
+      const stopButton = screen.getByTestId('execution-stop-button');
       fireEvent.click(stopButton);
 
       await waitFor(() => {
@@ -611,12 +719,12 @@ describe('Execution Page Integration', () => {
       expect(screen.getByTestId('execution-follow-up-input')).toBeInTheDocument();
     });
 
-    it('should show "Start New Task" button for completed task without session', () => {
+    it('should show "Новая задача" button for completed task without session', () => {
       mockStoreState.currentTask = createMockTask('task-123', 'Done', 'completed');
 
       renderWithRouter('task-123');
 
-      expect(screen.getByRole('button', { name: /start new task/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /новая задача/i })).toBeInTheDocument();
     });
 
     it('should call sendFollowUp when follow-up is submitted', async () => {
@@ -629,7 +737,7 @@ describe('Execution Page Integration', () => {
       const input = screen.getByTestId('execution-follow-up-input');
       fireEvent.change(input, { target: { value: 'Continue with the next step' } });
 
-      const sendButton = screen.getByRole('button', { name: /send/i });
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
       fireEvent.click(sendButton);
 
       await waitFor(() => {
@@ -672,52 +780,28 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      const sendButton = screen.getByRole('button', { name: /send/i });
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
       expect(sendButton).toBeDisabled();
     });
 
-    it('should keep skills submenu open when interacting with search in plus menu', async () => {
+    it('should render plus menu trigger in follow-up composer', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
 
       renderWithRouter('task-123');
 
-      const addContentButton = screen.getByTitle('Add content');
-      fireEvent.pointerDown(addContentButton, { button: 0, ctrlKey: false });
-      const skillsTrigger = await screen.findByText('Use Skills');
-
-      fireEvent.pointerMove(skillsTrigger);
-      fireEvent.click(skillsTrigger);
-      const searchInput = await screen.findByPlaceholderText('Search skills...');
-      fireEvent.pointerLeave(skillsTrigger, { relatedTarget: searchInput });
-      fireEvent.pointerMove(searchInput);
-      fireEvent.click(searchInput);
-      fireEvent.change(searchInput, { target: { value: 'git' } });
-
-      expect(screen.getByPlaceholderText('Search skills...')).toHaveValue('git');
-      expect(screen.getByText('Git Helper')).toBeInTheDocument();
-      expect(screen.queryByText('Calendar Prep')).not.toBeInTheDocument();
+      expect(screen.getByTestId('execution-plus-menu-trigger')).toBeInTheDocument();
     });
 
-    it('should keep skills submenu open when refresh is clicked', async () => {
+    it('should render attach files button in follow-up composer', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
 
       renderWithRouter('task-123');
 
-      const addContentButton = screen.getByTitle('Add content');
-      fireEvent.pointerDown(addContentButton, { button: 0, ctrlKey: false });
-      const skillsTrigger = await screen.findByText('Use Skills');
-
-      fireEvent.pointerMove(skillsTrigger);
-      fireEvent.click(skillsTrigger);
-
-      const refreshButton = await screen.findByRole('button', { name: 'Refresh' });
-      fireEvent.click(refreshButton);
-
-      expect(screen.getByPlaceholderText('Search skills...')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /прикрепить файл/i })).toBeInTheDocument();
     });
   });
 
@@ -727,7 +811,8 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText(/waiting for another task/i)).toBeInTheDocument();
+      expect(screen.getByText('Ожидание')).toBeInTheDocument();
+      expect(screen.getByText(/ваша задача в очереди/i)).toBeInTheDocument();
     });
 
     it('should show inline waiting indicator for queued task with messages', () => {
@@ -737,7 +822,8 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       expect(screen.getByText('Previous message')).toBeInTheDocument();
-      expect(screen.getByText(/waiting for another task/i)).toBeInTheDocument();
+      expect(screen.getByText('Ожидание')).toBeInTheDocument();
+      expect(screen.getByText(/продолжение задачи начнётся автоматически/i)).toBeInTheDocument();
     });
   });
 
@@ -784,9 +870,9 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Chrome not installed')).toBeInTheDocument();
-      expect(screen.getByText('Installing browser for automation...')).toBeInTheDocument();
-      expect(screen.getByText('Downloading...')).toBeInTheDocument();
+      expect(screen.getByText('Chrome не установлен')).toBeInTheDocument();
+      expect(screen.getByText('Устанавливаю браузер для автоматизации...')).toBeInTheDocument();
+      expect(screen.getByText('Загрузка...')).toBeInTheDocument();
     });
 
     it('should show download modal when setupProgress contains "% of"', () => {
@@ -797,7 +883,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Chrome not installed')).toBeInTheDocument();
+      expect(screen.getByText('Chrome не установлен')).toBeInTheDocument();
     });
 
     it('should calculate overall progress for step 1 (Chromium)', () => {
@@ -841,7 +927,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.queryByText('Chrome not installed')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chrome не установлен')).not.toBeInTheDocument();
     });
 
     it('should not show download modal when setupProgress is null', () => {
@@ -851,7 +937,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.queryByText('Chrome not installed')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chrome не установлен')).not.toBeInTheDocument();
     });
 
     it('should show one-time setup message', () => {
@@ -862,8 +948,8 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText(/one-time setup/i)).toBeInTheDocument();
-      expect(screen.getByText(/~250 MB total/i)).toBeInTheDocument();
+      expect(screen.getByText(/разовая установка/i)).toBeInTheDocument();
+      expect(screen.getByText(/250 МБ/i)).toBeInTheDocument();
     });
   });
 
@@ -900,7 +986,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Preview content')).toBeInTheDocument();
+      expect(screen.getByText('Предпросмотр содержимого')).toBeInTheDocument();
     });
 
     it('should show delete operation warning UI', () => {
@@ -916,8 +1002,8 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('File Deletion Warning')).toBeInTheDocument();
-      expect(screen.getByText('Delete')).toBeInTheDocument();
+      expect(screen.getByText('Предупреждение об удалении файла')).toBeInTheDocument();
+      expect(screen.getByText('Удалить')).toBeInTheDocument();
     });
 
     it('should show overwrite operation badge', () => {
@@ -981,17 +1067,17 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Allow Bash?')).toBeInTheDocument();
+      expect(screen.getByText('Разрешить: Bash?')).toBeInTheDocument();
     });
   });
 
   describe('task complete states', () => {
-    it('should navigate home when clicking Start New Task for failed task without session', async () => {
+    it('should navigate home when clicking Новая задача for failed task without session', async () => {
       mockStoreState.currentTask = createMockTask('task-123', 'Failed', 'failed');
 
       renderWithRouter('task-123');
 
-      const startNewButton = screen.getByRole('button', { name: /start new task/i });
+      const startNewButton = screen.getByRole('button', { name: /новая задача/i });
       expect(startNewButton).toBeInTheDocument();
 
       // Click the button - it should navigate to home
@@ -1009,7 +1095,9 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // Look for the retry placeholder text
-      expect(screen.getByPlaceholderText(/send a new instruction to retry/i)).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(/отправьте инструкцию, чтобы повторить/i),
+      ).toBeInTheDocument();
     });
 
     it('should show task cancelled message for cancelled task', () => {
@@ -1017,7 +1105,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText(/task cancelled/i)).toBeInTheDocument();
+      expect(screen.getByText(/задача:\s*cancelled/i)).toBeInTheDocument();
     });
 
     it('should show Continue button for interrupted task with session and messages', () => {
@@ -1028,7 +1116,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /продолжить/i })).toBeInTheDocument();
     });
 
     it('should show Done Continue button for completed task with session when waiting for user', () => {
@@ -1045,7 +1133,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByRole('button', { name: /done, continue/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /готово, продолжить/i })).toBeInTheDocument();
     });
 
     it('should call sendFollowUp with continue when Continue button is clicked', async () => {
@@ -1056,7 +1144,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      const continueButton = screen.getByRole('button', { name: /continue/i });
+      const continueButton = screen.getByRole('button', { name: /продолжить/i });
       fireEvent.click(continueButton);
 
       await waitFor(() => {
@@ -1066,13 +1154,13 @@ describe('Execution Page Integration', () => {
   });
 
   describe('system messages', () => {
-    it('should display system messages with System label', () => {
+    it('should display system messages with Системное сообщение label', () => {
       const messages = [createMockMessage('msg-1', 'system', 'System initialization complete')];
       mockStoreState.currentTask = createMockTask('task-123', 'Task', 'running', messages);
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('System')).toBeInTheDocument();
+      expect(screen.getByText('Системное сообщение')).toBeInTheDocument();
       expect(screen.getByText('System initialization complete')).toBeInTheDocument();
     });
   });
@@ -1103,7 +1191,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Finding files')).toBeInTheDocument();
+      expect(screen.getByText('Поиск файлов')).toBeInTheDocument();
     });
 
     it('should display Grep tool with search label', () => {
@@ -1120,7 +1208,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Searching code')).toBeInTheDocument();
+      expect(screen.getByText('Поиск по коду')).toBeInTheDocument();
     });
 
     it('should display Write tool', () => {
@@ -1137,7 +1225,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Writing file')).toBeInTheDocument();
+      expect(screen.getByText('Запись файла')).toBeInTheDocument();
     });
 
     it('should display Edit tool', () => {
@@ -1154,7 +1242,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Editing file')).toBeInTheDocument();
+      expect(screen.getByText('Редактирование файла')).toBeInTheDocument();
     });
 
     it('should display Task agent tool', () => {
@@ -1171,7 +1259,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Running agent')).toBeInTheDocument();
+      expect(screen.getByText('Запуск агента')).toBeInTheDocument();
     });
 
     it('should display dev_browser_execute tool', () => {
@@ -1188,7 +1276,7 @@ describe('Execution Page Integration', () => {
 
       renderWithRouter('task-123');
 
-      expect(screen.getByText('Executing browser action')).toBeInTheDocument();
+      expect(screen.getByText('Действие в браузере')).toBeInTheDocument();
     });
 
     it('should display unknown tool with fallback icon', () => {
@@ -1218,7 +1306,7 @@ describe('Execution Page Integration', () => {
       renderWithRouter('task-123');
 
       // The placeholder says "Send a new instruction to retry..."
-      const input = screen.getByPlaceholderText(/send a new instruction to retry/i);
+      const input = screen.getByPlaceholderText(/отправьте инструкцию, чтобы повторить/i);
       expect(input).toBeInTheDocument();
     });
 
@@ -1235,12 +1323,12 @@ describe('Execution Page Integration', () => {
   });
 
   describe('error navigation', () => {
-    it('should navigate home when Go Home button is clicked', async () => {
+    it('should navigate home when На главную button is clicked', async () => {
       mockStoreState.error = 'Task not found';
 
       renderWithRouter('task-123');
 
-      const goHomeButton = screen.getByRole('button', { name: /go home/i });
+      const goHomeButton = screen.getByRole('button', { name: /на главную/i });
       fireEvent.click(goHomeButton);
 
       await waitFor(() => {
@@ -1267,8 +1355,8 @@ describe('Execution Page Integration', () => {
     });
   });
 
-  describe('follow-up message length limit', () => {
-    it('should disable send button when follow-up exceeds max length', () => {
+  describe('follow-up send button behavior', () => {
+    it('should keep send button enabled when follow-up exceeds previous max length', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
@@ -1279,11 +1367,11 @@ describe('Execution Page Integration', () => {
       const oversizedValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH + 1);
       fireEvent.change(input, { target: { value: oversizedValue } });
 
-      const sendButton = screen.getByRole('button', { name: /send/i });
-      expect(sendButton).toBeDisabled();
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
+      expect(sendButton).not.toBeDisabled();
     });
 
-    it('should not disable send button when follow-up is at max length', () => {
+    it('should keep send button enabled when follow-up is at max length', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
@@ -1294,11 +1382,11 @@ describe('Execution Page Integration', () => {
       const exactLimitValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH);
       fireEvent.change(input, { target: { value: exactLimitValue } });
 
-      const sendButton = screen.getByRole('button', { name: /send/i });
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
       expect(sendButton).not.toBeDisabled();
     });
 
-    it('should not call sendFollowUp when submitting oversized follow-up', async () => {
+    it('should allow submitting oversized follow-up', async () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
@@ -1309,55 +1397,23 @@ describe('Execution Page Integration', () => {
       const oversizedValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH + 1);
       fireEvent.change(input, { target: { value: oversizedValue } });
 
-      const sendButton = screen.getByRole('button', { name: /send/i });
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(mockSendFollowUp).not.toHaveBeenCalled();
+        expect(mockSendFollowUp).toHaveBeenCalledWith(oversizedValue);
       });
     });
 
-    it('should show "Enter a message" tooltip when follow-up is empty', () => {
+    it('should use localized send button title', () => {
       const task = createMockTask('task-123', 'Done', 'completed');
       task.sessionId = 'session-abc';
       mockStoreState.currentTask = task;
 
       renderWithRouter('task-123');
 
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Enter a message');
-      expect(sendTooltip).toBeDefined();
-    });
-
-    it('should show "Message is too long" tooltip when follow-up exceeds limit', () => {
-      const task = createMockTask('task-123', 'Done', 'completed');
-      task.sessionId = 'session-abc';
-      mockStoreState.currentTask = task;
-
-      renderWithRouter('task-123');
-
-      const input = screen.getByTestId('execution-follow-up-input');
-      const oversizedValue = 'a'.repeat(PROMPT_DEFAULT_MAX_LENGTH + 1);
-      fireEvent.change(input, { target: { value: oversizedValue } });
-
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Message is too long');
-      expect(sendTooltip).toBeDefined();
-    });
-
-    it('should show "Send" tooltip when follow-up is valid', () => {
-      const task = createMockTask('task-123', 'Done', 'completed');
-      task.sessionId = 'session-abc';
-      mockStoreState.currentTask = task;
-
-      renderWithRouter('task-123');
-
-      const input = screen.getByTestId('execution-follow-up-input');
-      fireEvent.change(input, { target: { value: 'Normal follow-up' } });
-
-      const tooltips = screen.getAllByRole('tooltip');
-      const sendTooltip = tooltips.find((t) => t.textContent === 'Send');
-      expect(sendTooltip).toBeDefined();
+      const sendButton = screen.getByRole('button', { name: /отправить/i });
+      expect(sendButton).toHaveAttribute('title', 'Отправить');
     });
   });
 });

@@ -15,6 +15,7 @@ import {
   isQuestionRequest,
   createPermissionHandler,
   type PermissionHandlerAPI,
+  type FileAccessMode,
   type PermissionFileRequestData as FilePermissionRequestData,
   type PermissionQuestionRequestData as QuestionRequestData,
   type PermissionQuestionResponseData as QuestionResponseData,
@@ -28,13 +29,19 @@ const permissionHandler: PermissionHandlerAPI = createPermissionHandler();
 // Store reference to main window and task manager
 let mainWindow: BrowserWindow | null = null;
 let getActiveTaskId: (() => string | null) | null = null;
+let getFileAccessMode: (() => FileAccessMode) | null = null;
 
 /**
  * Initialize the permission API with dependencies
  */
-export function initPermissionApi(window: BrowserWindow, taskIdGetter: () => string | null): void {
+export function initPermissionApi(
+  window: BrowserWindow,
+  taskIdGetter: () => string | null,
+  fileAccessModeGetter: () => FileAccessMode,
+): void {
   mainWindow = window;
   getActiveTaskId = taskIdGetter;
+  getFileAccessMode = fileAccessModeGetter;
 }
 
 /**
@@ -112,6 +119,12 @@ export function startPermissionApiServer(): http.Server {
     if (!taskId) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'No active task' }));
+      return;
+    }
+
+    if (getFileAccessMode?.() === 'full') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ allowed: true }));
       return;
     }
 

@@ -7,8 +7,8 @@ if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView = () => {};
 }
 
-// Load English locale files so tests get real translated text
-const localesDir = path.resolve(process.cwd(), 'locales/en');
+// Load locale files used by the current RU-only web build so tests resolve real text.
+const localesDir = path.resolve(process.cwd(), 'locales/ru');
 const translations: Record<string, Record<string, unknown>> = {};
 
 if (fs.existsSync(localesDir)) {
@@ -40,7 +40,7 @@ function interpolate(text: string, options?: Record<string, unknown>): string {
   });
 }
 
-// Mock react-i18next for all tests — resolves keys to actual English text
+// Mock react-i18next for all tests — resolves keys to actual locale text
 vi.mock('react-i18next', () => ({
   useTranslation: (ns?: string) => ({
     t: (key: string, options?: Record<string, unknown>) => {

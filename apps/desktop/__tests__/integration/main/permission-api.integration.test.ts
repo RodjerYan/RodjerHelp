@@ -96,8 +96,11 @@ describe('Permission API Integration', () => {
         },
       } as unknown as import('electron').BrowserWindow;
       const mockTaskGetter = () => 'task_123';
+      const mockFileAccessModeGetter = () => 'limited' as const;
 
-      expect(() => initPermissionApi(mockWindow, mockTaskGetter)).not.toThrow();
+      expect(() =>
+        initPermissionApi(mockWindow, mockTaskGetter, mockFileAccessModeGetter),
+      ).not.toThrow();
     });
 
     it('should be a function', () => {
@@ -115,6 +118,42 @@ describe('Permission API Integration', () => {
       expect(server).toBeDefined();
       // Clean up - close the server
       server?.close();
+    });
+
+    it('should auto-allow permission requests in full access mode', async () => {
+      const mockWindow = {
+        isDestroyed: () => false,
+        webContents: {
+          send: vi.fn(),
+          isDestroyed: () => false,
+        },
+      } as unknown as import('electron').BrowserWindow;
+
+      initPermissionApi(
+        mockWindow,
+        () => 'task_123',
+        () => 'full',
+      );
+      const server = startPermissionApiServer();
+
+      try {
+        const response = await fetch(`http://127.0.0.1:${PERMISSION_API_PORT}/permission`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            operation: 'modify',
+            filePath: 'C:/tmp/example.txt',
+          }),
+        });
+
+        expect(response.ok).toBe(true);
+        await expect(response.json()).resolves.toEqual({ allowed: true });
+        expect(mockWindow.webContents.send).not.toHaveBeenCalled();
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
     });
   });
 });

@@ -1,9 +1,11 @@
-const requiredModules = ['better-sqlite3', 'node-pty'];
-
 try {
-  for (const moduleName of requiredModules) {
-    require(moduleName);
-  }
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  db.prepare('select 1').get();
+  db.close();
+
+  require('node-pty');
+
   console.log('[desktop] Electron native module validation passed');
   process.exit(0);
 } catch (error) {

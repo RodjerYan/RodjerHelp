@@ -5,7 +5,8 @@ import type {
   AzureFoundryConfig,
   LMStudioConfig,
 } from '../../common/types/provider.js';
-import type { ThemePreference } from '../../types/storage.js';
+import type { LearningSettings } from '../../common/types/learning.js';
+import type { FileAccessMode, ThemePreference } from '../../types/storage.js';
 import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
 
@@ -20,6 +21,9 @@ interface AppSettingsRow {
   lmstudio_config: string | null;
   openai_base_url: string | null;
   theme: string;
+  file_access_mode: string;
+  self_learning_enabled: number;
+  auto_apply_learning: number;
 }
 
 export interface AppSettings {
@@ -32,6 +36,9 @@ export interface AppSettings {
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  fileAccessMode: FileAccessMode;
+  selfLearningEnabled: boolean;
+  autoApplyLearning: boolean;
 }
 
 function getRow(): AppSettingsRow {
@@ -151,6 +158,7 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
 }
 
 const VALID_THEMES: ThemePreference[] = ['system', 'light', 'dark'];
+const VALID_FILE_ACCESS_MODES: FileAccessMode[] = ['limited', 'full'];
 
 export function getTheme(): ThemePreference {
   const row = getRow();
@@ -169,6 +177,49 @@ export function setTheme(theme: ThemePreference): void {
   db.prepare('UPDATE app_settings SET theme = ? WHERE id = 1').run(theme);
 }
 
+export function getFileAccessMode(): FileAccessMode {
+  const row = getRow();
+  const value = row.file_access_mode as FileAccessMode;
+  if (VALID_FILE_ACCESS_MODES.includes(value)) {
+    return value;
+  }
+  return 'limited';
+}
+
+export function setFileAccessMode(mode: FileAccessMode): void {
+  if (!VALID_FILE_ACCESS_MODES.includes(mode)) {
+    throw new Error(`Invalid file access mode: ${mode}`);
+  }
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET file_access_mode = ? WHERE id = 1').run(mode);
+}
+
+export function getSelfLearningEnabled(): boolean {
+  return getRow().self_learning_enabled === 1;
+}
+
+export function setSelfLearningEnabled(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET self_learning_enabled = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+export function getAutoApplyLearning(): boolean {
+  return getRow().auto_apply_learning === 1;
+}
+
+export function setAutoApplyLearning(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET auto_apply_learning = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+export function getLearningSettings(): LearningSettings {
+  const row = getRow();
+  return {
+    selfLearningEnabled: row.self_learning_enabled === 1,
+    autoApplyLearning: row.auto_apply_learning === 1,
+  };
+}
+
 export function getAppSettings(): AppSettings {
   const row = getRow();
   return {
@@ -183,6 +234,11 @@ export function getAppSettings(): AppSettings {
     theme: VALID_THEMES.includes(row.theme as ThemePreference)
       ? (row.theme as ThemePreference)
       : 'system',
+    fileAccessMode: VALID_FILE_ACCESS_MODES.includes(row.file_access_mode as FileAccessMode)
+      ? (row.file_access_mode as FileAccessMode)
+      : 'limited',
+    selfLearningEnabled: row.self_learning_enabled === 1,
+    autoApplyLearning: row.auto_apply_learning === 1,
   };
 }
 
@@ -198,7 +254,10 @@ export function clearAppSettings(): void {
       azure_foundry_config = NULL,
       lmstudio_config = NULL,
       openai_base_url = '',
-      theme = 'system'
+      theme = 'system',
+      file_access_mode = 'limited',
+      self_learning_enabled = 1,
+      auto_apply_learning = 1
     WHERE id = 1`,
   ).run();
 }

@@ -1,5 +1,5 @@
 /* Geist Font Faces */
-@import "./macos26.css";
+@import './macos26.css';
 @font-face {
   font-family: 'Geist';
   src: url('/fonts/Geist-Light.ttf') format('truetype');
@@ -72,23 +72,30 @@
 /* macOS-like font stack (legal, no Apple fonts embedded).
    Uses system UI fonts first, then Geist as fallback. */
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji",
-    "Geist", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji', 'Geist', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
 }
 
 .macos26 {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01" 1, "ss02" 1;
+  font-feature-settings:
+    'ss01' 1,
+    'ss02' 1;
 }
 
-.macos26 code, .macos26 pre, .macos26 kbd, .macos26 samp {
+.macos26 code,
+.macos26 pre,
+.macos26 kbd,
+.macos26 samp {
   font-family: var(--font-mono);
 }
-
 
 /* Shadcn-inspired theme variables */
 :root {
@@ -297,14 +304,13 @@ textarea::placeholder {
 
 /* Component utilities - removed as we're using shadcn components now */
 
-
 /* SIDEBAR_SQUARE_CORNERS_V2
    Remove rounding from the left sidebar/panel only. */
 .macos26-sidebar,
 .dark .macos26-sidebar,
 aside.macos26-sidebar,
-[data-slot="sidebar"].macos26-sidebar,
-[data-slot="sidebar"],
+[data-slot='sidebar'].macos26-sidebar,
+[data-slot='sidebar'],
 .sidebar,
 .app-sidebar {
   border-radius: 0 !important;
@@ -313,8 +319,8 @@ aside.macos26-sidebar,
 
 .macos26-sidebar::before,
 .macos26-sidebar::after,
-[data-slot="sidebar"]::before,
-[data-slot="sidebar"]::after,
+[data-slot='sidebar']::before,
+[data-slot='sidebar']::after,
 .sidebar::before,
 .sidebar::after,
 .app-sidebar::before,
@@ -323,12 +329,11 @@ aside.macos26-sidebar,
 }
 
 .macos26-sidebar > div,
-[data-slot="sidebar"] > div,
+[data-slot='sidebar'] > div,
 .sidebar > div,
 .app-sidebar > div {
   border-radius: 0 !important;
 }
-
 
 /* Global macOS / Telegram polish */
 @layer base {
@@ -399,7 +404,7 @@ aside.macos26-sidebar,
   }
 
   .macos26 .border-border {
-    border-color: rgba(255, 255, 255, 0.10) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
   }
 
   .macos26 .bg-card,

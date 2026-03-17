@@ -8,11 +8,11 @@ import {
 
 describe('Azure Token Manager', () => {
   beforeEach(() => {
-    // Clear cache before each test
-    clearAzureTokenCache();
-
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Clear cache before each test
+    clearAzureTokenCache();
   });
 
   afterEach(() => {

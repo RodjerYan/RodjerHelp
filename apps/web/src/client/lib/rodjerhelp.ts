@@ -8,6 +8,7 @@
 import type {
   Task,
   TaskConfig,
+  TaskPersonaMode,
   TaskUpdateEvent,
   TaskStatus,
   PermissionRequest,
@@ -25,10 +26,17 @@ import type {
   Skill,
   McpConnector,
 } from '@accomplish_ai/agent-core/common';
-
+import type { FileAccessMode, LearningInsight, LearningSettings } from '@accomplish_ai/agent-core';
 
 export interface AppUpdateStatus {
-  status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+  status:
+    | 'idle'
+    | 'checking'
+    | 'available'
+    | 'downloading'
+    | 'downloaded'
+    | 'not-available'
+    | 'error';
   version?: string;
   progress?: number;
   transferred?: number;
@@ -43,6 +51,7 @@ export interface PickedFile {
   lastModified: number;
 }
 
+type RodjerHelpExtras = NonNullable<Window['rodjerhelpExtras']>;
 
 // Define the API interface
 export interface RodjerHelpAPI {
@@ -66,7 +75,12 @@ export interface RodjerHelpAPI {
   respondToPermission(response: PermissionResponse): Promise<void>;
 
   // Session management
-  resumeSession(sessionId: string, prompt: string, taskId?: string): Promise<Task>;
+  resumeSession(
+    sessionId: string,
+    prompt: string,
+    taskId?: string,
+    options?: { taskMode?: TaskPersonaMode; memoryContext?: string },
+  ): Promise<Task>;
 
   // Updates
   getUpdateStatus(): Promise<AppUpdateStatus>;
@@ -100,8 +114,22 @@ export interface RodjerHelpAPI {
   setDebugMode(enabled: boolean): Promise<void>;
   getTheme(): Promise<string>;
   setTheme(theme: string): Promise<void>;
+  getFileAccessMode?(): Promise<FileAccessMode>;
+  setFileAccessMode?(mode: FileAccessMode): Promise<void>;
+  getLearningSettings?(): Promise<LearningSettings>;
+  setSelfLearningEnabled?(enabled: boolean): Promise<void>;
+  setAutoApplyLearning?(enabled: boolean): Promise<void>;
+  getLearningInsights?(): Promise<LearningInsight[]>;
+  deleteLearningInsight?(insightId: string): Promise<void>;
+  clearLearningInsights?(): Promise<void>;
   onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
-  getAppSettings(): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }>;
+  onFileAccessModeChange?(callback: (data: { mode: FileAccessMode }) => void): () => void;
+  getAppSettings(): Promise<{
+    debugMode: boolean;
+    onboardingComplete: boolean;
+    theme: string;
+    fileAccessMode: FileAccessMode;
+  }>;
   getOpenAiBaseUrl(): Promise<string>;
   setOpenAiBaseUrl(baseUrl: string): Promise<void>;
   getOpenAiOauthStatus(): Promise<{ connected: boolean; expires?: number }>;
@@ -382,14 +410,16 @@ export interface RodjerHelpAPI {
   getLastPickedChatFiles?(): Promise<string[]>;
   setLastPickedChatFiles?(files: PickedFile[] | string[]): Promise<void>;
   clearLastPickedChatFiles?(): Promise<void>;
-  readChatFiles?(paths: string[]): Promise<Array<{
-    path: string;
-    name: string;
-    size: number;
-    truncated?: boolean;
-    text?: string;
-    error?: string;
-  }>>;
+  readChatFiles?(paths: string[]): Promise<
+    Array<{
+      path: string;
+      name: string;
+      size: number;
+      truncated?: boolean;
+      text?: string;
+      error?: string;
+    }>
+  >;
   resolveDroppedChatFiles?(files: File[]): Promise<PickedFile[]>;
   addSkillFromFile(filePath: string): Promise<Skill>;
   addSkillFromGitHub(rawUrl: string): Promise<Skill>;
@@ -484,6 +514,10 @@ export function getAccomplish() {
   return getRodjerHelp();
 }
 
+function getRodjerHelpExtras(): RodjerHelpExtras | undefined {
+  return window.rodjerhelpExtras;
+}
+
 /**
  * Check if running in Electron shell
  */
@@ -517,7 +551,17 @@ export function useRodjerHelp(): RodjerHelpAPI {
 }
 
 export const getLastPickedChatFiles = async (): Promise<string[]> => {
-  const extras = (window as any)?.rodjerhelpExtras;
+  const extras = getRodjerHelpExtras();
   if (!extras?.getLastPickedChatFiles) return [];
   return extras.getLastPickedChatFiles();
+};
+
+export const setLastPickedChatFiles = async (files: PickedFile[] | string[]): Promise<void> => {
+  const extras = getRodjerHelpExtras();
+  await extras?.setLastPickedChatFiles?.(files);
+};
+
+export const clearLastPickedChatFiles = async (): Promise<void> => {
+  const extras = getRodjerHelpExtras();
+  await extras?.clearLastPickedChatFiles?.();
 };

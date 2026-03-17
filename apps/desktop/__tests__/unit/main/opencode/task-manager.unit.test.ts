@@ -67,6 +67,11 @@ class MockPty extends EventEmitter {
   pid = 12345;
   killed = false;
 
+  constructor() {
+    super();
+    this.setMaxListeners(0);
+  }
+
   write = vi.fn();
   kill = vi.fn(() => {
     this.killed = true;
@@ -294,6 +299,9 @@ describe('Task Manager Module', () => {
     vi.clearAllMocks();
     vi.resetModules();
     createdAdapters.length = 0;
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Re-import module to get fresh state
     const module = await import('@main/opencode');

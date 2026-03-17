@@ -65,7 +65,7 @@ function NavLink({
       className={cn(
         'no-drag rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-150',
         'text-muted-foreground hover:text-foreground hover:bg-white/8',
-        active && 'bg-white/10 text-foreground shadow-sm'
+        active && 'bg-white/10 text-foreground shadow-sm',
       )}
     >
       {children}

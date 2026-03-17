@@ -1,5 +1,4 @@
 // =============================================================================
-console.log('[agent-core] u2d sync test');
 // @accomplish/core - Public API (v0.4.0)
 // =============================================================================
 // This file explicitly exports the public API for the @accomplish/core package.
@@ -42,8 +41,12 @@ export type {
   StoredTask,
   AppSettings,
   ThemePreference,
+  FileAccessMode,
+  LearningInsight,
+  LearningSettings,
   TaskStorageAPI,
   AppSettingsAPI,
+  LearningInsightsAPI,
   ProviderSettingsAPI,
   SecureStorageAPI,
   DatabaseLifecycleAPI,
@@ -223,6 +226,17 @@ export type { BrowserServerConfig } from './browser/server.js';
 
 // Summarizer functions
 export { generateTaskSummary } from './services/summarizer.js';
+export {
+  analyzeTaskForLearning,
+  buildLearningSystemPromptAppend,
+  mergeSystemPromptAppend,
+} from './services/self-learning.js';
+export {
+  buildRecommendedSkillsAppend,
+  buildTaskModeSystemPromptAppend,
+  recommendSkillsForTask,
+  resolveTaskMemoryContext,
+} from './services/task-intelligence.js';
 
 export type { GetApiKeyFn } from './services/summarizer.js';
 
@@ -239,6 +253,7 @@ export type { GetApiKeyFn } from './services/summarizer.js';
 // Task types
 export type {
   TaskStatus,
+  TaskPersonaMode,
   TaskConfig,
   Task,
   TaskAttachment,
@@ -352,6 +367,9 @@ export type {
   OAuthClientRegistration,
   McpConnector,
 } from './common/types/connector.js';
+
+// Learning types
+export type { LearningInsightCategory } from './common/types/learning.js';
 
 // MCP OAuth
 export {

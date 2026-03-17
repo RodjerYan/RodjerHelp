@@ -59,8 +59,9 @@ const mockAccomplish = {
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
-// Mock the accomplish module - always return true for isRunningInElectron for most tests
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the app
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
   isRunningInElectron: () => true,
 }));

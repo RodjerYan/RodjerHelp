@@ -23,7 +23,12 @@ interface PlusMenuProps {
   disabled?: boolean;
 }
 
-export function PlusMenu({ onSkillSelect, onOpenSettings, onAttachFiles, disabled }: PlusMenuProps) {
+export function PlusMenu({
+  onSkillSelect,
+  onOpenSettings,
+  onAttachFiles,
+  disabled,
+}: PlusMenuProps) {
   const { t } = useTranslation('home');
   const [open, setOpen] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);

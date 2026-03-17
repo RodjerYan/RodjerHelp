@@ -67,9 +67,13 @@ const mockAccomplish = {
   speechIsConfigured: vi.fn().mockResolvedValue(true),
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the page
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
+  getLastPickedChatFiles: vi.fn().mockResolvedValue([]),
+  setLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
+  clearLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock store state holder
@@ -87,15 +91,67 @@ vi.mock('@/stores/taskStore', () => ({
   useTaskStore: () => mockStoreState,
 }));
 
+vi.mock('@/components/landing/TaskInputBar', () => ({
+  TaskInputBar: ({
+    value,
+    onChange,
+    onSubmit,
+    isLoading,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit: () => void;
+    isLoading?: boolean;
+  }) => (
+    <div>
+      <textarea
+        data-testid="task-input-textarea"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!!isLoading}
+      />
+      <button
+        data-testid="task-input-submit"
+        title={isLoading ? 'Остановить' : 'Отправить'}
+        onClick={onSubmit}
+      >
+        {isLoading ? 'Остановить' : 'Отправить'}
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@/components/landing/PlusMenu', () => ({
+  PlusMenu: () => <div data-testid="plus-menu" />,
+}));
+
+vi.mock('@/components/landing/IntegrationIcons', () => ({
+  IntegrationIcon: ({ domain }: { domain: string }) => <span>{domain}</span>,
+}));
+
 // Mock framer-motion for simpler testing
 vi.mock('framer-motion', () => ({
   motion: {
-    h1: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <h1 {...props}>{children}</h1>
-    ),
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-      <div {...props}>{children}</div>
-    ),
+    h1: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => {
+      const {
+        initial: _initial,
+        animate: _animate,
+        exit: _exit,
+        transition: _transition,
+        ...domProps
+      } = props;
+      return <h1 {...domProps}>{children}</h1>;
+    },
+    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => {
+      const {
+        initial: _initial,
+        animate: _animate,
+        exit: _exit,
+        transition: _transition,
+        ...domProps
+      } = props;
+      return <div {...domProps}>{children}</div>;
+    },
     button: ({
       children,
       onClick,
@@ -104,11 +160,21 @@ vi.mock('framer-motion', () => ({
       children: React.ReactNode;
       onClick?: () => void;
       [key: string]: unknown;
-    }) => (
-      <button onClick={onClick} {...props}>
-        {children}
-      </button>
-    ),
+    }) => {
+      const {
+        initial: _initial,
+        animate: _animate,
+        exit: _exit,
+        transition: _transition,
+        whileTap: _whileTap,
+        ...domProps
+      } = props;
+      return (
+        <button onClick={onClick} {...domProps}>
+          {children}
+        </button>
+      );
+    },
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -126,8 +192,8 @@ vi.mock('@/components/layout/SettingsDialog', () => ({
   }) =>
     open ? (
       <div data-testid="settings-dialog" role="dialog">
-        <button onClick={() => onOpenChange(false)}>Close</button>
-        {onApiKeySaved && <button onClick={onApiKeySaved}>Save API Key</button>}
+        <button onClick={() => onOpenChange(false)}>Закрыть</button>
+        {onApiKeySaved && <button onClick={onApiKeySaved}>Сохранить API-ключ</button>}
       </div>
     ) : null,
   default: ({
@@ -141,8 +207,8 @@ vi.mock('@/components/layout/SettingsDialog', () => ({
   }) =>
     open ? (
       <div data-testid="settings-dialog" role="dialog">
-        <button onClick={() => onOpenChange(false)}>Close</button>
-        {onApiKeySaved && <button onClick={onApiKeySaved}>Save API Key</button>}
+        <button onClick={() => onOpenChange(false)}>Закрыть</button>
+        {onApiKeySaved && <button onClick={onApiKeySaved}>Сохранить API-ключ</button>}
       </div>
     ) : null,
 }));
@@ -201,7 +267,7 @@ describe('Home Page Integration', () => {
 
       // Assert
       expect(
-        screen.getByRole('heading', { name: /what will you accomplish today/i }),
+        screen.getByRole('heading', { name: /что нужно сделать сегодня/i }),
       ).toBeInTheDocument();
     });
 
@@ -240,7 +306,7 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/example prompts/i)).toBeInTheDocument();
+      expect(screen.getByText(/примеры запросов/i)).toBeInTheDocument();
     });
 
     it('should render use case example cards', async () => {
@@ -251,10 +317,10 @@ describe('Home Page Integration', () => {
         </MemoryRouter>,
       );
 
-      // Assert - Check for some example use cases (expanded by default)
+      // Assert - example cards are rendered with stable test ids
       await waitFor(() => {
-        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
-        expect(screen.getByText('Inbox Promo Cleanup')).toBeInTheDocument();
+        expect(screen.getByTestId('home-example-0')).toBeInTheDocument();
+        expect(screen.getByTestId('home-example-1')).toBeInTheDocument();
       });
     });
 
@@ -432,7 +498,7 @@ describe('Home Page Integration', () => {
       });
 
       // Simulate saving API key (which triggers onApiKeySaved callback)
-      const saveButton = screen.getByRole('button', { name: /save api key/i });
+      const saveButton = screen.getByRole('button', { name: /сохранить api-ключ/i });
       fireEvent.click(saveButton);
 
       // Assert - Task should be started after provider is configured
@@ -471,7 +537,7 @@ describe('Home Page Integration', () => {
       );
 
       // Assert
-      const submitButton = screen.getByTitle('Stop');
+      const submitButton = screen.getByTitle('Остановить');
       expect(submitButton).not.toBeDisabled();
     });
 
@@ -486,7 +552,7 @@ describe('Home Page Integration', () => {
       );
 
       // The textarea is disabled, so we can't really type, but test submit
-      const submitButton = screen.getByTitle('Stop');
+      const submitButton = screen.getByTitle('Остановить');
       fireEvent.click(submitButton);
 
       // Assert
@@ -508,9 +574,9 @@ describe('Home Page Integration', () => {
 
       // Act - Click on Calendar Prep Notes example (expanded by default)
       await waitFor(() => {
-        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+        expect(screen.getByText('Подготовка к встречам')).toBeInTheDocument();
       });
-      const exampleButton = screen.getByText('Calendar Prep Notes').closest('button');
+      const exampleButton = screen.getByText('Подготовка к встречам').closest('button');
       expect(exampleButton).toBeInTheDocument();
       fireEvent.click(exampleButton!);
 
@@ -532,8 +598,8 @@ describe('Home Page Integration', () => {
 
       // Assert - Examples section heading and cards are always visible
       await waitFor(() => {
-        expect(screen.getByText('Example Prompts')).toBeInTheDocument();
-        expect(screen.getByText('Calendar Prep Notes')).toBeInTheDocument();
+        expect(screen.getByText('Примеры запросов')).toBeInTheDocument();
+        expect(screen.getByText('Подготовка к встречам')).toBeInTheDocument();
       });
     });
 
@@ -546,22 +612,8 @@ describe('Home Page Integration', () => {
       );
 
       // Assert - examples are expanded by default
-      const expectedExamples = [
-        'Calendar Prep Notes',
-        'Inbox Promo Cleanup',
-        'Competitor Pricing Deck',
-        'Notion API Audit',
-        'Staging vs Prod Visual Check',
-        'Production Broken Links',
-        'Portfolio Monitoring',
-        'Job Application Automation',
-        'Event Calendar Builder',
-      ];
-
       await waitFor(() => {
-        expectedExamples.forEach((example) => {
-          expect(screen.getByText(example)).toBeInTheDocument();
-        });
+        expect(screen.getAllByTestId(/home-example-/)).toHaveLength(9);
       });
     });
   });
@@ -593,7 +645,7 @@ describe('Home Page Integration', () => {
       });
 
       // Close without saving
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /закрыть/i });
       fireEvent.click(closeButton);
 
       // Assert

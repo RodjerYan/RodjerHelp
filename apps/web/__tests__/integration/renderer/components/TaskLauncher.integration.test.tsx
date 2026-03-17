@@ -59,14 +59,16 @@ const mockAccomplish = {
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the component
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
 }));
 
 // Create a store state holder for testing
 let mockStoreState = {
   isLauncherOpen: false,
+  launcherInitialPrompt: null as string | null,
   closeLauncher: mockCloseLauncher,
   tasks: [] as Task[],
   startTask: mockStartTask,
@@ -74,7 +76,8 @@ let mockStoreState = {
 
 // Mock the task store
 vi.mock('@/stores/taskStore', () => ({
-  useTaskStore: () => mockStoreState,
+  useTaskStore: (selector?: (state: typeof mockStoreState) => unknown) =>
+    selector ? selector(mockStoreState) : mockStoreState,
 }));
 
 // Mock framer-motion to simplify testing animations
@@ -151,7 +154,7 @@ describe('TaskLauncherItem', () => {
       );
 
       // Assert - Status dot should have green color
-      const dot = container.querySelector('.bg-green-500');
+      const dot = container.querySelector('.bg-blue-500');
       expect(dot).toBeInTheDocument();
     });
 
@@ -264,6 +267,7 @@ describe('TaskLauncher', () => {
     // Reset store state
     mockStoreState = {
       isLauncherOpen: false,
+      launcherInitialPrompt: null,
       closeLauncher: mockCloseLauncher,
       tasks: [],
       startTask: mockStartTask,
@@ -296,7 +300,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.queryByPlaceholderText('Search tasks...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Поиск задач...')).not.toBeInTheDocument();
     });
 
     it('should render when isLauncherOpen is true', () => {
@@ -311,7 +315,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.getByPlaceholderText('Search tasks...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Поиск задач...')).toBeInTheDocument();
     });
 
     it('should show search input when open', () => {
@@ -326,7 +330,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       expect(searchInput).toBeInTheDocument();
       expect(searchInput.tagName).toBe('INPUT');
     });
@@ -343,7 +347,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /закрыть/i });
       expect(closeButton).toBeInTheDocument();
     });
 
@@ -358,7 +362,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'Escape' });
 
       // Assert - May be called more than once due to Dialog component
@@ -376,7 +380,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /закрыть/i });
       fireEvent.click(closeButton);
 
       // Assert
@@ -397,7 +401,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.getByText('New task')).toBeInTheDocument();
+      expect(screen.getByText('Новая задача')).toBeInTheDocument();
     });
 
     it('should show search query in new task option when search has text', () => {
@@ -411,7 +415,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'my new task' } });
 
       // Assert
@@ -445,7 +449,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - Plus icon should be present
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       const icon = newTaskButton?.querySelector('svg');
       expect(icon).toBeInTheDocument();
     });
@@ -468,7 +472,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.getByText('Last 7 days')).toBeInTheDocument();
+      expect(screen.getByText('Последние 7 дней')).toBeInTheDocument();
     });
 
     it('should show "Results" section when searching', () => {
@@ -483,11 +487,11 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'email' } });
 
       // Assert
-      expect(screen.getByText('Results')).toBeInTheDocument();
+      expect(screen.getByText('Результаты')).toBeInTheDocument();
     });
 
     it('should filter tasks by search query', () => {
@@ -506,7 +510,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'email' } });
 
       // Assert
@@ -527,7 +531,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'email' } });
 
       // Assert
@@ -546,11 +550,11 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
       // Assert
-      expect(screen.getByText('No tasks found')).toBeInTheDocument();
+      expect(screen.getByText('Задачи не найдены')).toBeInTheDocument();
     });
 
     it('should only show tasks from last 7 days when no search', () => {
@@ -596,7 +600,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'email' } });
 
       // Assert
@@ -639,7 +643,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - "New task" should be selected (has bg-primary)
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       expect(newTaskButton?.className).toContain('bg-primary');
     });
 
@@ -655,7 +659,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
 
       // Assert - First task should now be selected
@@ -675,12 +679,12 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' }); // Move to first task
       fireEvent.keyDown(searchInput, { key: 'ArrowUp' }); // Move back to New task
 
       // Assert - "New task" should be selected again
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       expect(newTaskButton?.className).toContain('bg-primary');
     });
 
@@ -695,11 +699,11 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowUp' }); // Try to move up from first item
 
       // Assert - "New task" should still be selected
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       expect(newTaskButton?.className).toContain('bg-primary');
     });
 
@@ -715,7 +719,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' }); // Move to task
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' }); // Try to move past last item
 
@@ -736,7 +740,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' }); // Move to task
 
       // Close and reopen
@@ -755,7 +759,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - Selection should be back at first item
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       expect(newTaskButton?.className).toContain('bg-primary');
     });
   });
@@ -772,7 +776,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       if (newTaskButton) {
         fireEvent.click(newTaskButton);
       }
@@ -796,10 +800,10 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'Test prompt' } });
 
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       if (newTaskButton) {
         fireEvent.click(newTaskButton);
       }
@@ -832,10 +836,10 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'Test prompt' } });
 
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       if (newTaskButton) {
         fireEvent.click(newTaskButton);
       }
@@ -883,7 +887,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.keyDown(searchInput, { key: 'ArrowDown' }); // Move to task
       fireEvent.keyDown(searchInput, { key: 'Enter' }); // Select task
 
@@ -908,7 +912,7 @@ describe('TaskLauncher', () => {
 
       // Assert - Search icon should be present
       // Check that the search input exists (which has the Search icon next to it)
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       expect(searchInput).toBeInTheDocument();
     });
 
@@ -924,9 +928,9 @@ describe('TaskLauncher', () => {
       );
 
       // Assert
-      expect(screen.getByText('Navigate')).toBeInTheDocument();
-      expect(screen.getByText('Select')).toBeInTheDocument();
-      expect(screen.getByText('Close')).toBeInTheDocument();
+      expect(screen.getByText('Навигация')).toBeInTheDocument();
+      expect(screen.getByText('Выбрать')).toBeInTheDocument();
+      expect(screen.getAllByText('Закрыть').length).toBeGreaterThan(0);
     });
 
     it('should render overlay when open', () => {
@@ -941,8 +945,8 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - When open, the dialog content should be visible
-      expect(screen.getByPlaceholderText('Search tasks...')).toBeInTheDocument();
-      expect(screen.getByText('New task')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Поиск задач...')).toBeInTheDocument();
+      expect(screen.getByText('Новая задача')).toBeInTheDocument();
     });
   });
 
@@ -960,8 +964,8 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - Should show New task and no error
-      expect(screen.getByText('New task')).toBeInTheDocument();
-      expect(screen.queryByText('Last 7 days')).not.toBeInTheDocument();
+      expect(screen.getByText('Новая задача')).toBeInTheDocument();
+      expect(screen.queryByText('Последние 7 дней')).not.toBeInTheDocument();
     });
 
     it('should trim whitespace from search query', async () => {
@@ -977,10 +981,10 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: '  Trimmed prompt  ' } });
 
-      const newTaskButton = screen.getByText('New task').closest('button');
+      const newTaskButton = screen.getByText('Новая задача').closest('button');
       if (newTaskButton) {
         fireEvent.click(newTaskButton);
       }
@@ -1006,7 +1010,7 @@ describe('TaskLauncher', () => {
         </MemoryRouter>,
       );
 
-      const searchInput = screen.getByPlaceholderText('Search tasks...');
+      const searchInput = screen.getByPlaceholderText('Поиск задач...');
       fireEvent.change(searchInput, { target: { value: 'some search' } });
 
       // Close and reopen
@@ -1025,7 +1029,7 @@ describe('TaskLauncher', () => {
       );
 
       // Assert - Search should be cleared
-      const newSearchInput = screen.getByPlaceholderText('Search tasks...');
+      const newSearchInput = screen.getByPlaceholderText('Поиск задач...');
       expect(newSearchInput).toHaveValue('');
     });
   });

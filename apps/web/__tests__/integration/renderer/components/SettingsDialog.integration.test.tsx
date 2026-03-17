@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
 const mockAccomplish = {
@@ -27,14 +27,17 @@ const mockAccomplish = {
   setConnectedProvider: vi.fn().mockResolvedValue(undefined),
   removeConnectedProvider: vi.fn().mockResolvedValue(undefined),
   setProviderDebugMode: vi.fn().mockResolvedValue(undefined),
+  fetchProviderModels: vi.fn().mockResolvedValue([]),
+  validateApiKeyForProvider: vi.fn().mockResolvedValue({ valid: true }),
   validateBedrockCredentials: vi.fn().mockResolvedValue({ valid: true }),
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
   getDebugMode: vi.fn().mockResolvedValue(false),
   getVersion: vi.fn().mockResolvedValue('0.1.0-test'),
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the component
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
 }));
 
@@ -73,6 +76,12 @@ vi.mock('framer-motion', () => {
   };
 });
 
+vi.mock('@/components/settings/ProviderSettingsPanel', () => ({
+  ProviderSettingsPanel: ({ providerId }: { providerId: string }) => (
+    <div data-testid={`provider-settings-panel-${providerId}`} />
+  ),
+}));
+
 // Mock Radix Dialog to simplify testing
 vi.mock('@radix-ui/react-dialog', () => ({
   Root: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
@@ -81,7 +90,15 @@ vi.mock('@radix-ui/react-dialog', () => ({
   Overlay: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dialog-overlay">{children}</div>
   ),
-  Content: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
+  Content: ({
+    children,
+    onOpenAutoFocus: _onOpenAutoFocus,
+    onCloseAutoFocus: _onCloseAutoFocus,
+    ...props
+  }: {
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <div data-testid="dialog-content" role="dialog" {...props}>
       {children}
     </div>
@@ -103,6 +120,21 @@ describe('SettingsDialog Integration', () => {
     onOpenChange: vi.fn(),
     onApiKeySaved: vi.fn(),
   };
+
+  beforeAll(() => {
+    const originalConsoleError = console.error;
+    vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = args[0];
+      if (typeof message === 'string' && message.includes('not wrapped in act')) {
+        return;
+      }
+      originalConsoleError(...args);
+    });
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,9 +163,9 @@ describe('SettingsDialog Integration', () => {
       // Arrange & Act
       render(<SettingsDialog {...defaultProps} />);
 
-      // Assert - SettingsDialog uses "Settings" as title
+      // Assert - SettingsDialog uses localized title
       await waitFor(() => {
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText('Настройки')).toBeInTheDocument();
       });
     });
 
@@ -211,9 +243,8 @@ describe('SettingsDialog Integration', () => {
       // Wait for dialog to load with anthropic as active
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        // Verify anthropic card has green background (is active)
         const anthropicCard = screen.getByTestId('provider-card-anthropic');
-        expect(anthropicCard.className).toContain('bg-[#e9f7e7]');
+        expect(anthropicCard.className).toContain('bg-provider-bg-active');
       });
 
       // Verify the initial state: anthropic is active

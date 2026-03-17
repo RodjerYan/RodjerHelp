@@ -7,3 +7,6 @@ pnpm-lock.yaml
 dist-electron/
 playwright-report/
 coverage/
+_export_main_files/
+apps/desktop/resources/nodejs/
+scripts/

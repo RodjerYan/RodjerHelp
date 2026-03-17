@@ -14,9 +14,9 @@ describe('Azure Foundry Proxy', () => {
   });
 
   afterEach(async () => {
-    vi.restoreAllMocks();
     // Clean up any running proxy
     await stopAzureFoundryProxy();
+    vi.restoreAllMocks();
   });
 
   describe('transformRequestBody', () => {

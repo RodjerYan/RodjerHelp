@@ -1,6 +1,8 @@
 import type { TaskConfig } from '../common/types/task.js';
 import { sanitizeString } from './sanitize.js';
 
+const VALID_TASK_MODES = new Set(['default', 'code-review', 'analysis', 'sales', 'executive']);
+
 /**
  * Validates and sanitizes a TaskConfig object.
  * Ensures all fields are properly typed, trimmed, and within length limits.
@@ -32,6 +34,15 @@ export function validateTaskConfig(config: TaskConfig): TaskConfig {
   }
   if (config.outputSchema && typeof config.outputSchema === 'object') {
     validated.outputSchema = config.outputSchema;
+  }
+  if (config.taskMode) {
+    if (!VALID_TASK_MODES.has(config.taskMode)) {
+      throw new Error('taskMode must be one of: default, code-review, analysis, sales, executive');
+    }
+    validated.taskMode = config.taskMode;
+  }
+  if (config.memoryContext) {
+    validated.memoryContext = sanitizeString(config.memoryContext, 'memoryContext', 256);
   }
 
   return validated;

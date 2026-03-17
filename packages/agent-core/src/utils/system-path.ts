@@ -2,9 +2,14 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+function getPathModuleForPlatform(): typeof path.posix | typeof path.win32 {
+  return process.platform === 'win32' ? path.win32 : path.posix;
+}
+
 function getNvmNodePaths(): string[] {
   const home = process.env.HOME || '';
-  const nvmVersionsDir = path.join(home, '.nvm', 'versions', 'node');
+  const platformPath = getPathModuleForPlatform();
+  const nvmVersionsDir = platformPath.join(home, '.nvm', 'versions', 'node');
 
   if (!fs.existsSync(nvmVersionsDir)) {
     return [];
@@ -22,7 +27,7 @@ function getNvmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map((v) => path.join(nvmVersionsDir, v, 'bin'));
+    return versions.map((v) => platformPath.join(nvmVersionsDir, v, 'bin'));
   } catch {
     return [];
   }
@@ -30,7 +35,8 @@ function getNvmNodePaths(): string[] {
 
 function getFnmNodePaths(): string[] {
   const home = process.env.HOME || '';
-  const fnmVersionsDir = path.join(home, '.fnm', 'node-versions');
+  const platformPath = getPathModuleForPlatform();
+  const fnmVersionsDir = platformPath.join(home, '.fnm', 'node-versions');
 
   if (!fs.existsSync(fnmVersionsDir)) {
     return [];
@@ -48,7 +54,7 @@ function getFnmNodePaths(): string[] {
         return parseVersion(b) - parseVersion(a);
       });
 
-    return versions.map((v) => path.join(fnmVersionsDir, v, 'installation', 'bin'));
+    return versions.map((v) => platformPath.join(fnmVersionsDir, v, 'installation', 'bin'));
   } catch {
     return [];
   }
@@ -98,7 +104,7 @@ function getSystemPathFromPathHelper(): string | null {
 }
 
 export function getExtendedNodePath(basePath?: string): string {
-  const base = basePath || process.env.PATH || '';
+  const base = basePath ?? process.env.PATH ?? '';
 
   if (process.platform !== 'darwin') {
     return base;
@@ -133,11 +139,12 @@ export function getExtendedNodePath(basePath?: string): string {
 
 export function findCommandInPath(command: string, searchPath: string): string | null {
   const delimiter = process.platform === 'win32' ? ';' : ':';
+  const platformPath = getPathModuleForPlatform();
 
   for (const dir of searchPath.split(delimiter)) {
     if (!dir) continue;
 
-    const fullPath = path.join(dir, command);
+    const fullPath = platformPath.join(dir, command);
     try {
       if (fs.existsSync(fullPath)) {
         const stats = fs.statSync(fullPath);

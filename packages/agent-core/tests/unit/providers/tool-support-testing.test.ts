@@ -7,6 +7,8 @@ describe('testOllamaModelToolSupport', () => {
 
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

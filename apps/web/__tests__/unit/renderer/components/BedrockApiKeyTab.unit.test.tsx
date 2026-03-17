@@ -40,7 +40,7 @@ describe('BedrockApiKeyTab', () => {
       render(<BedrockApiKeyTab {...defaultProps} />);
 
       // Assert
-      expect(screen.getByText('API Key')).toBeInTheDocument();
+      expect(screen.getByText('API‑ключ')).toBeInTheDocument();
     });
 
     it('should render "How to get it?" help link', () => {
@@ -48,7 +48,7 @@ describe('BedrockApiKeyTab', () => {
       render(<BedrockApiKeyTab {...defaultProps} />);
 
       // Assert
-      const helpLink = screen.getByText('How to get it?');
+      const helpLink = screen.getByText('Как получить?');
       expect(helpLink).toBeInTheDocument();
       expect(helpLink).toHaveAttribute(
         'href',
@@ -163,7 +163,7 @@ describe('BedrockApiKeyTab', () => {
 
       // Assert
       const input = screen.getByTestId('bedrock-api-key-input');
-      expect(input).toHaveAttribute('placeholder', 'Enter Bedrock API key');
+      expect(input).toHaveAttribute('placeholder', 'Введите API‑ключ Bedrock');
     });
   });
 });

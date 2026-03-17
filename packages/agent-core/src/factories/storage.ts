@@ -37,9 +37,22 @@ import {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getFileAccessMode,
+  setFileAccessMode,
+  getSelfLearningEnabled,
+  setSelfLearningEnabled,
+  getAutoApplyLearning,
+  setAutoApplyLearning,
+  getLearningSettings,
   getAppSettings,
   clearAppSettings,
 } from '../storage/repositories/appSettings.js';
+import {
+  listLearningInsights,
+  upsertLearningInsight,
+  deleteLearningInsight,
+  clearLearningInsights,
+} from '../storage/repositories/learning.js';
 import {
   getProviderSettings,
   setActiveProvider,
@@ -122,8 +135,21 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     setOpenAiBaseUrl: (baseUrl) => setOpenAiBaseUrl(baseUrl),
     getTheme: () => getTheme(),
     setTheme: (theme) => setTheme(theme),
+    getFileAccessMode: () => getFileAccessMode(),
+    setFileAccessMode: (mode) => setFileAccessMode(mode),
+    getSelfLearningEnabled: () => getSelfLearningEnabled(),
+    setSelfLearningEnabled: (enabled) => setSelfLearningEnabled(enabled),
+    getAutoApplyLearning: () => getAutoApplyLearning(),
+    setAutoApplyLearning: (enabled) => setAutoApplyLearning(enabled),
+    getLearningSettings: () => getLearningSettings(),
     getAppSettings: () => getAppSettings(),
     clearAppSettings: () => clearAppSettings(),
+
+    // Learning insights
+    listLearningInsights: () => listLearningInsights(),
+    upsertLearningInsight: (insight) => upsertLearningInsight(insight),
+    deleteLearningInsight: (insightId) => deleteLearningInsight(insightId),
+    clearLearningInsights: () => clearLearningInsights(),
 
     // Provider Settings
     getProviderSettings: () => getProviderSettings(),

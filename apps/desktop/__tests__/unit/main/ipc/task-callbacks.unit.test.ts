@@ -36,6 +36,9 @@ import { createTaskCallbacks } from '@main/ipc/task-callbacks';
 describe('task-callbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('stops sending IPC events after the first sender failure', () => {

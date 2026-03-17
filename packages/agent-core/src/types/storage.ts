@@ -1,5 +1,6 @@
 import type { Task, TaskStatus, TaskMessage } from '../common/types/task.js';
 import type { TodoItem } from '../common/types/todo.js';
+import type { LearningInsight, LearningSettings } from '../common/types/learning.js';
 import type {
   SelectedModel,
   OllamaConfig,
@@ -36,12 +37,15 @@ export interface StoredTask {
   status: TaskStatus;
   messages: TaskMessage[];
   sessionId?: string;
+  taskMode?: Task['taskMode'];
+  memoryContext?: string;
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
 }
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+export type FileAccessMode = 'limited' | 'full';
 
 /** Application settings snapshot */
 export interface AppSettings {
@@ -54,6 +58,9 @@ export interface AppSettings {
   lmstudioConfig: LMStudioConfig | null;
   openaiBaseUrl: string;
   theme: ThemePreference;
+  fileAccessMode: FileAccessMode;
+  selfLearningEnabled: boolean;
+  autoApplyLearning: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,10 +133,36 @@ export interface AppSettingsAPI {
   getTheme(): ThemePreference;
   /** Set the theme preference */
   setTheme(theme: ThemePreference): void;
+  /** Get the current file access mode */
+  getFileAccessMode(): FileAccessMode;
+  /** Set the file access mode */
+  setFileAccessMode(mode: FileAccessMode): void;
+  /** Get whether automatic self-learning is enabled */
+  getSelfLearningEnabled(): boolean;
+  /** Enable or disable self-learning */
+  setSelfLearningEnabled(enabled: boolean): void;
+  /** Get whether learned insights are auto-applied to new tasks */
+  getAutoApplyLearning(): boolean;
+  /** Enable or disable auto-application of learned insights */
+  setAutoApplyLearning(enabled: boolean): void;
+  /** Get learning settings snapshot */
+  getLearningSettings(): LearningSettings;
   /** Get all application settings as a snapshot */
   getAppSettings(): AppSettings;
   /** Reset all application settings to defaults */
   clearAppSettings(): void;
+}
+
+/** API for local self-learning memory */
+export interface LearningInsightsAPI {
+  /** List learned insights ordered by relevance */
+  listLearningInsights(): LearningInsight[];
+  /** Create or update a learned insight */
+  upsertLearningInsight(insight: LearningInsight): void;
+  /** Delete a single learned insight */
+  deleteLearningInsight(insightId: string): void;
+  /** Delete all learned insights */
+  clearLearningInsights(): void;
 }
 
 /** API for managing AI provider configurations */
@@ -231,6 +264,7 @@ export interface StorageAPI
   extends
     TaskStorageAPI,
     AppSettingsAPI,
+    LearningInsightsAPI,
     ProviderSettingsAPI,
     SecureStorageAPI,
     ConnectorStorageAPI,
@@ -252,4 +286,6 @@ export type {
   McpConnector,
   ConnectorStatus,
   OAuthTokens,
+  LearningInsight,
+  LearningSettings,
 };

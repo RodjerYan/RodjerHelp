@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { isWindows, runCommandSync, runPnpmSync } = require('../../../scripts/dev-runtime.cjs');
+const { ensureBetterSqliteElectronBuild } = require('./ensure-better-sqlite3-electron.cjs');
 
 const desktopRoot = path.join(__dirname, '..');
 const cliArgs = new Set(process.argv.slice(2));
@@ -48,6 +49,10 @@ function runNodeScript(scriptName, commandEnv) {
 }
 
 function ensureNativeModules(commandEnv) {
+  if (isWindows) {
+    ensureBetterSqliteElectronBuild({ desktopRoot, env: commandEnv });
+  }
+
   const forceRebuild = process.env.ACCOMPLISH_FORCE_ELECTRON_REBUILD === '1';
   if (!isWindows || forceRebuild) {
     runElectronRebuild(commandEnv);

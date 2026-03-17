@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/release/**',
       '**/node_modules/**',
       '**/playwright-report/**',
+      '_export_main_files/**',
       'scripts/**',
       '**/scripts/**/*.cjs',
     ],

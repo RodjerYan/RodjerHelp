@@ -45,6 +45,11 @@ class MockPty extends EventEmitter {
   pid = 12345;
   killed = false;
 
+  constructor() {
+    super();
+    this.setMaxListeners(0);
+  }
+
   write = vi.fn();
   kill = vi.fn(() => {
     this.killed = true;
@@ -117,6 +122,9 @@ describe('OAuthBrowserFlow', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Create fresh mock PTY instance
     mockPtyInstance = new MockPty();
@@ -440,7 +448,7 @@ describe('OAuthBrowserFlow', () => {
 
   describe('error scenarios', () => {
     it('should handle PTY kill errors during cancel gracefully', async () => {
-      oauthBrowserFlow.start();
+      const startPromise = oauthBrowserFlow.start();
 
       // Wait for async setup
       await Promise.resolve();
@@ -452,10 +460,13 @@ describe('OAuthBrowserFlow', () => {
 
       // Should not throw
       await expect(oauthBrowserFlow.cancel()).resolves.not.toThrow();
+
+      mockPtyInstance.simulateExit(1);
+      await expect(startPromise).rejects.toThrow('auth login failed');
     });
 
     it('should handle PTY kill errors during dispose gracefully', async () => {
-      oauthBrowserFlow.start();
+      const startPromise = oauthBrowserFlow.start();
 
       // Wait for async setup
       await Promise.resolve();
@@ -467,6 +478,9 @@ describe('OAuthBrowserFlow', () => {
 
       // Should not throw
       expect(() => oauthBrowserFlow.dispose()).not.toThrow();
+
+      mockPtyInstance.simulateExit(1);
+      await expect(startPromise).rejects.toThrow('auth login failed');
     });
 
     it('should redact sensitive data in error messages', async () => {

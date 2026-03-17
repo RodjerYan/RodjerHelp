@@ -9,6 +9,7 @@
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { ensureBetterSqliteElectronBuild } = require('./ensure-better-sqlite3-electron.cjs');
 
 const isWindows = process.platform === 'win32';
 const nodeModulesPath = path.join(__dirname, '..', 'node_modules');
@@ -32,6 +33,10 @@ const pnpmSymlinksToResolve = [
 const resolvedSymlinks = {};
 
 try {
+  if (isWindows) {
+    ensureBetterSqliteElectronBuild({ desktopRoot: path.join(__dirname, '..') });
+  }
+
   // Check and remove workspace symlinks
   for (const pkg of workspacePackages) {
     const pkgPath = path.join(accomplishPath, pkg);

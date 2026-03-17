@@ -3,7 +3,12 @@ import { useParams, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../stores/taskStore';
-import { getRodjerHelp, type PickedFile } from '../lib/rodjerhelp';
+import {
+  clearLastPickedChatFiles,
+  getRodjerHelp,
+  setLastPickedChatFiles,
+  type PickedFile,
+} from '../lib/rodjerhelp';
 import { springs } from '../lib/animations';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
 import { Button } from '@/components/ui/button';
@@ -26,6 +31,8 @@ import { isWaitingForUser } from '../lib/waiting-detection';
 import { SettingsDialog } from '../components/layout/SettingsDialog';
 import { TodoSidebar } from '../components/TodoSidebar';
 import { ModelIndicator } from '../components/ui/ModelIndicator';
+import { FileAccessModeSelect } from '../components/ui/FileAccessModeSelect';
+import { TaskModeSelect } from '../components/ui/TaskModeSelect';
 import { useSpeechInput } from '../hooks/useSpeechInput';
 import { SpeechInputButton } from '../components/ui/SpeechInputButton';
 import { PlusMenu } from '../components/landing/PlusMenu';
@@ -46,7 +53,7 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
 export function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const accomplish = getRodjerHelp();
+  const accomplish = useMemo(() => getRodjerHelp(), []);
   const { t } = useTranslation('execution');
   const { t: tCommon } = useTranslation('common');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -157,7 +164,7 @@ export function ExecutionPage() {
       setCurrentTool(null);
       setCurrentToolInput(null);
       setAttachedFiles([]);
-      void (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
+      void clearLastPickedChatFiles();
       accomplish.getTodosForTask(id).then((todos) => {
         useTaskStore.getState().setTodos(id, todos);
       });
@@ -263,25 +270,28 @@ export function ExecutionPage() {
   }, []);
 
   const syncPickedFiles = useCallback((files: PickedFile[]) => {
-    void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(files);
+    void setLastPickedChatFiles(files);
   }, []);
 
-  const mergePickedFiles = useCallback((incoming: PickedFile[]) => {
-    if (!incoming.length) return;
-    setAttachedFiles((prev) => {
-      const seen = new Set(prev.map((file) => file.path));
-      const nextFiles = [...prev];
-      for (const file of incoming) {
-        if (!seen.has(file.path)) {
-          nextFiles.push(file);
-          seen.add(file.path);
+  const mergePickedFiles = useCallback(
+    (incoming: PickedFile[]) => {
+      if (!incoming.length) return;
+      setAttachedFiles((prev) => {
+        const seen = new Set(prev.map((file) => file.path));
+        const nextFiles = [...prev];
+        for (const file of incoming) {
+          if (!seen.has(file.path)) {
+            nextFiles.push(file);
+            seen.add(file.path);
+          }
         }
-      }
-      syncPickedFiles(nextFiles);
-      return nextFiles;
-    });
-    focusFollowUpInput(0);
-  }, [focusFollowUpInput, syncPickedFiles]);
+        syncPickedFiles(nextFiles);
+        return nextFiles;
+      });
+      focusFollowUpInput(0);
+    },
+    [focusFollowUpInput, syncPickedFiles],
+  );
 
   const handleAttachFiles = useCallback(async () => {
     try {
@@ -293,47 +303,56 @@ export function ExecutionPage() {
     }
   }, [accomplish, mergePickedFiles]);
 
-  const handleRemoveAttachment = useCallback((path: string) => {
-    setAttachedFiles((prev) => {
-      const nextFiles = prev.filter((file) => file.path !== path);
-      syncPickedFiles(nextFiles);
-      return nextFiles;
-    });
-    focusFollowUpInput(0);
-  }, [focusFollowUpInput, syncPickedFiles]);
-
-  const normalizeDroppedFiles = useCallback(async (fileList: FileList | null): Promise<PickedFile[]> => {
-    if (!fileList) return [];
-
-    const dropped = Array.from(fileList);
-    if (window.accomplish?.resolveDroppedChatFiles) {
-      const resolved = await window.accomplish.resolveDroppedChatFiles(dropped);
-      if (resolved.length > 0) return resolved;
-    }
-
-    const seen = new Set<string>();
-    const files: PickedFile[] = [];
-
-    for (const file of dropped) {
-      const filePath = String((file as File & { path?: string }).path || '').trim();
-      if (!filePath || seen.has(filePath)) continue;
-      seen.add(filePath);
-      files.push({
-        path: filePath,
-        name: file.name,
-        size: file.size,
-        lastModified: file.lastModified,
+  const handleRemoveAttachment = useCallback(
+    (path: string) => {
+      setAttachedFiles((prev) => {
+        const nextFiles = prev.filter((file) => file.path !== path);
+        syncPickedFiles(nextFiles);
+        return nextFiles;
       });
-    }
+      focusFollowUpInput(0);
+    },
+    [focusFollowUpInput, syncPickedFiles],
+  );
 
-    return files;
-  }, []);
+  const normalizeDroppedFiles = useCallback(
+    async (fileList: FileList | null): Promise<PickedFile[]> => {
+      if (!fileList) return [];
 
-  const handleDroppedFiles = useCallback(async (fileList: FileList | null) => {
-    const droppedFiles = await normalizeDroppedFiles(fileList);
-    if (!droppedFiles.length) return;
-    mergePickedFiles(droppedFiles);
-  }, [mergePickedFiles, normalizeDroppedFiles]);
+      const dropped = Array.from(fileList);
+      if (window.accomplish?.resolveDroppedChatFiles) {
+        const resolved = await window.accomplish.resolveDroppedChatFiles(dropped);
+        if (resolved.length > 0) return resolved;
+      }
+
+      const seen = new Set<string>();
+      const files: PickedFile[] = [];
+
+      for (const file of dropped) {
+        const filePath = String((file as File & { path?: string }).path || '').trim();
+        if (!filePath || seen.has(filePath)) continue;
+        seen.add(filePath);
+        files.push({
+          path: filePath,
+          name: file.name,
+          size: file.size,
+          lastModified: file.lastModified,
+        });
+      }
+
+      return files;
+    },
+    [],
+  );
+
+  const handleDroppedFiles = useCallback(
+    async (fileList: FileList | null) => {
+      const droppedFiles = await normalizeDroppedFiles(fileList);
+      if (!droppedFiles.length) return;
+      mergePickedFiles(droppedFiles);
+    },
+    [mergePickedFiles, normalizeDroppedFiles],
+  );
 
   useEffect(() => {
     if (canFollowUp) {
@@ -364,27 +383,6 @@ export function ExecutionPage() {
     };
   }, [canFollowUp, focusFollowUpInput, showSettingsDialog]);
 
-  useEffect(() => {
-    if (!canFollowUp || showSettingsDialog) return;
-
-    const restoreFocus = () => focusFollowUpInput(0);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        focusFollowUpInput(30);
-      }
-    };
-
-    window.addEventListener('focus', restoreFocus);
-    window.addEventListener('pageshow', restoreFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('focus', restoreFocus);
-      window.removeEventListener('pageshow', restoreFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [canFollowUp, focusFollowUpInput, showSettingsDialog]);
-
   const handleFollowUp = useCallback(async () => {
     if (!followUp.trim() && attachedFiles.length === 0) return;
     const isE2EMode = await accomplish.isE2EMode();
@@ -397,12 +395,15 @@ export function ExecutionPage() {
         return;
       }
     }
-    const message = followUp.trim() || 'Проанализируй прикреплённые файлы и продолжай задачу, используя их как источник.';
+    const message =
+      followUp.trim() ||
+      'Проанализируй прикреплённые файлы и продолжай задачу, используя их как источник.';
+    await setLastPickedChatFiles(attachedFiles);
     await sendFollowUp(message);
     setFollowUp('');
     setAttachedFiles([]);
-    await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
-  }, [attachedFiles.length, followUp, accomplish, sendFollowUp]);
+    await clearLastPickedChatFiles();
+  }, [attachedFiles, followUp, accomplish, sendFollowUp]);
 
   const handleSettingsDialogClose = (open: boolean) => {
     setShowSettingsDialog(open);
@@ -418,10 +419,11 @@ export function ExecutionPage() {
   const handleApiKeySaved = async () => {
     setShowSettingsDialog(false);
     if (pendingFollowUp) {
+      await setLastPickedChatFiles(attachedFiles);
       await sendFollowUp(pendingFollowUp);
       setFollowUp('');
       setAttachedFiles([]);
-      await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
+      await clearLastPickedChatFiles();
       setPendingFollowUp(null);
       return;
     }
@@ -475,15 +477,7 @@ export function ExecutionPage() {
     if (newTask) {
       navigate(`/execution/${newTask.id}`);
     }
-  }, [
-    accomplish,
-    currentTask,
-    isLoading,
-    loadTaskById,
-    navigate,
-    startTask,
-    updateTaskStatus,
-  ]);
+  }, [accomplish, currentTask, isLoading, navigate, sendFollowUp, startTask]);
 
   const handleOpenSpeechSettings = useCallback(() => {
     setSettingsInitialTab('voice');
@@ -1006,21 +1000,27 @@ export function ExecutionPage() {
                   </div>
                 )}
                 {isDragOverFollowUp && (
-                  <div className="px-4 pb-2 text-xs text-primary">Отпустите файл, чтобы прикрепить его к сообщению</div>
+                  <div className="px-4 pb-2 text-xs text-primary">
+                    Отпустите файл, чтобы прикрепить его к сообщению
+                  </div>
                 )}
                 <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border/50">
-                  <PlusMenu
-                    onSkillSelect={(command) => {
-                      const newValue = `${command} ${followUp}`.trim();
-                      setFollowUp(newValue);
-                      setTimeout(() => followUpInputRef.current?.focus(), 0);
-                    }}
-                    onOpenSettings={(tab) => {
-                      setSettingsInitialTab(tab);
-                      setShowSettingsDialog(true);
-                    }}
-                    disabled={isLoading || speechInput.isRecording}
-                  />
+                  <div className="flex items-center gap-2">
+                    <PlusMenu
+                      onSkillSelect={(command) => {
+                        const newValue = `${command} ${followUp}`.trim();
+                        setFollowUp(newValue);
+                        setTimeout(() => followUpInputRef.current?.focus(), 0);
+                      }}
+                      onOpenSettings={(tab) => {
+                        setSettingsInitialTab(tab);
+                        setShowSettingsDialog(true);
+                      }}
+                      disabled={isLoading || speechInput.isRecording}
+                    />
+                    <TaskModeSelect />
+                    <FileAccessModeSelect />
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -1049,7 +1049,11 @@ export function ExecutionPage() {
                     <button
                       type="button"
                       onClick={handleFollowUp}
-                      disabled={(!followUp.trim() && attachedFiles.length === 0) || isLoading || speechInput.isRecording}
+                      disabled={
+                        (!followUp.trim() && attachedFiles.length === 0) ||
+                        isLoading ||
+                        speechInput.isRecording
+                      }
                       className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title={tCommon('buttons.send')}
                     >

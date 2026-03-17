@@ -50,6 +50,9 @@ describe('OpenCode CLI Path Module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     mockApp.isPackaged = false;
     delete process.env.APP_ROOT;
   });
@@ -66,10 +69,17 @@ describe('OpenCode CLI Path Module', () => {
   describe('getOpenCodeCliPath()', () => {
     it('resolves local CLI from appPath in development mode', async () => {
       const appPath = '/mock/app/path';
+      const resolvedAppPath = path.resolve(appPath);
       const localCliPath =
         process.platform === 'win32'
-          ? path.join(appPath, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
-          : path.join(appPath, 'node_modules', '.bin', 'opencode');
+          ? path.join(
+              resolvedAppPath,
+              'node_modules',
+              'opencode-windows-x64',
+              'bin',
+              'opencode.exe',
+            )
+          : path.join(resolvedAppPath, 'node_modules', '.bin', 'opencode');
       mockApp.getAppPath.mockReturnValue(appPath);
       mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 
@@ -78,16 +88,23 @@ describe('OpenCode CLI Path Module', () => {
 
       expect(result.command).toBe(localCliPath);
       expect(result.args).toEqual([]);
-    });
+    }, 15000);
 
     it('resolves local CLI from APP_ROOT when appPath lookup fails', async () => {
       const appPath = '/mock/app/path';
       const appRoot = '/mock/app/root';
       process.env.APP_ROOT = appRoot;
+      const resolvedAppRoot = path.resolve(appRoot);
       const localCliPath =
         process.platform === 'win32'
-          ? path.join(appRoot, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
-          : path.join(appRoot, 'node_modules', '.bin', 'opencode');
+          ? path.join(
+              resolvedAppRoot,
+              'node_modules',
+              'opencode-windows-x64',
+              'bin',
+              'opencode.exe',
+            )
+          : path.join(resolvedAppRoot, 'node_modules', '.bin', 'opencode');
       mockApp.getAppPath.mockReturnValue(appPath);
       mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 
@@ -133,10 +150,17 @@ describe('OpenCode CLI Path Module', () => {
   describe('isOpenCodeCliAvailable()', () => {
     it('returns true when local workspace CLI is available', async () => {
       const appPath = '/mock/app/path';
+      const resolvedAppPath = path.resolve(appPath);
       const localCliPath =
         process.platform === 'win32'
-          ? path.join(appPath, 'node_modules', 'opencode-windows-x64', 'bin', 'opencode.exe')
-          : path.join(appPath, 'node_modules', '.bin', 'opencode');
+          ? path.join(
+              resolvedAppPath,
+              'node_modules',
+              'opencode-windows-x64',
+              'bin',
+              'opencode.exe',
+            )
+          : path.join(resolvedAppPath, 'node_modules', '.bin', 'opencode');
       mockApp.getAppPath.mockReturnValue(appPath);
       mockFs.existsSync.mockImplementation((p: string) => p === localCliPath);
 

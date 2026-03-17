@@ -1,6 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import type { TaskMessage, TaskResult, TaskStatus, TodoItem } from '@accomplish_ai/agent-core';
-import { mapResultToStatus } from '@accomplish_ai/agent-core';
+import { analyzeTaskForLearning, mapResultToStatus } from '@accomplish_ai/agent-core';
 import { getTaskManager, recoverDevBrowserServer } from '../opencode';
 import type { TaskCallbacks } from '../opencode';
 import { getStorage } from '../store/storage';
@@ -77,6 +77,22 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
     browserFailureWindowStart = 0;
   };
 
+  const persistTaskLearning = () => {
+    if (!storage.getSelfLearningEnabled()) {
+      return;
+    }
+
+    const task = storage.getTask(taskId);
+    if (!task) {
+      return;
+    }
+
+    const insights = analyzeTaskForLearning(task);
+    for (const insight of insights) {
+      storage.upsertLearningInsight(insight);
+    }
+  };
+
   return {
     onBatchedMessages: (messages: TaskMessage[]) => {
       forwardToRenderer('task:update:batch', { taskId, messages });
@@ -114,6 +130,8 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       if (result.status === 'success') {
         storage.clearTodosForTask(taskId);
       }
+
+      persistTaskLearning();
     },
 
     onError: (error: Error) => {
@@ -131,6 +149,7 @@ export function createTaskCallbacks(options: TaskCallbacksOptions): TaskCallback
       }
 
       storage.updateTaskStatus(taskId, 'failed', new Date().toISOString());
+      persistTaskLearning();
     },
 
     onDebug: (log: { type: string; message: string; data?: unknown }) => {

@@ -69,39 +69,37 @@ export async function initI18n(): Promise<void> {
   initializationPromise = (async () => {
     const initialLanguage = resolveStoredLanguage();
 
-    await i18n
-      .use(initReactI18next)
-      .init({
-        resources: {
-          ru: {
-            common: ruCommon as Record<string, unknown>,
-            home: ruHome as Record<string, unknown>,
-            settings: ruSettings as Record<string, unknown>,
-            execution: ruExecution as Record<string, unknown>,
-            history: ruHistory as Record<string, unknown>,
-            errors: ruErrors as Record<string, unknown>,
-            sidebar: ruSidebar as Record<string, unknown>,
-          },
+    await i18n.use(initReactI18next).init({
+      resources: {
+        ru: {
+          common: ruCommon as Record<string, unknown>,
+          home: ruHome as Record<string, unknown>,
+          settings: ruSettings as Record<string, unknown>,
+          execution: ruExecution as Record<string, unknown>,
+          history: ruHistory as Record<string, unknown>,
+          errors: ruErrors as Record<string, unknown>,
+          sidebar: ruSidebar as Record<string, unknown>,
         },
-        lng: initialLanguage,
-        fallbackLng: 'ru',
-        defaultNS: 'common',
-        ns: NAMESPACES as unknown as string[],
+      },
+      lng: initialLanguage,
+      fallbackLng: 'ru',
+      defaultNS: 'common',
+      ns: NAMESPACES as unknown as string[],
 
-        interpolation: {
-          escapeValue: false,
-        },
+      interpolation: {
+        escapeValue: false,
+      },
 
-        // В RU‑only сборке нет определения/сохранения языка.
+      // В RU‑only сборке нет определения/сохранения языка.
 
-        debug: process.env.NODE_ENV === 'development',
+      debug: process.env.NODE_ENV === 'development',
 
-        returnEmptyString: false,
+      returnEmptyString: false,
 
-        react: {
-          useSuspense: false,
-        },
-      });
+      react: {
+        useSuspense: false,
+      },
+    });
 
     updateDocumentDirection(initialLanguage);
     isInitialized = true;

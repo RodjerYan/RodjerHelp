@@ -116,7 +116,12 @@ export function AboutTab({ appVersion }: AboutTabProps) {
             <div className="space-y-3 pt-1">
               <div className="text-sm font-medium">{updateStatusText}</div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={handleCheckUpdates} disabled={checking}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCheckUpdates}
+                  disabled={checking}
+                >
                   {checking ? t('about.updates.checkingButton') : t('about.updates.checkButton')}
                 </Button>
                 {updateStatus.status === 'downloaded' ? (

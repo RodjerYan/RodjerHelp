@@ -175,6 +175,7 @@ describe('Preload Script Integration', () => {
           'session_123',
           'Continue',
           'task_456',
+          undefined,
         );
       });
     });
@@ -193,6 +194,18 @@ describe('Preload Script Integration', () => {
       it('getAppSettings should invoke settings:app-settings', async () => {
         await (capturedRodjerHelpAPI.getAppSettings as () => Promise<unknown>)();
         expect(mockInvoke).toHaveBeenCalledWith('settings:app-settings');
+      });
+
+      it('getFileAccessMode should invoke settings:file-access-mode', async () => {
+        await (capturedRodjerHelpAPI.getFileAccessMode as () => Promise<'limited' | 'full'>)();
+        expect(mockInvoke).toHaveBeenCalledWith('settings:file-access-mode');
+      });
+
+      it('setFileAccessMode should invoke settings:set-file-access-mode', async () => {
+        await (
+          capturedRodjerHelpAPI.setFileAccessMode as (mode: 'limited' | 'full') => Promise<void>
+        )('full');
+        expect(mockInvoke).toHaveBeenCalledWith('settings:set-file-access-mode', 'full');
       });
     });
 
@@ -331,6 +344,19 @@ describe('Preload Script Integration', () => {
         callback,
       );
       expect(mockOn).toHaveBeenCalledWith('task:status-change', expect.any(Function));
+    });
+
+    it('onFileAccessModeChange should subscribe to settings:file-access-mode-changed', () => {
+      const callback = vi.fn();
+      (
+        capturedRodjerHelpAPI.onFileAccessModeChange as (
+          cb: (data: { mode: 'limited' | 'full' }) => void,
+        ) => () => void
+      )(callback);
+      expect(mockOn).toHaveBeenCalledWith(
+        'settings:file-access-mode-changed',
+        expect.any(Function),
+      );
     });
   });
 

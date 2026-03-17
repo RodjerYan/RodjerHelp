@@ -8,6 +8,8 @@ export type TaskStatus =
   | 'cancelled'
   | 'interrupted';
 
+export type TaskPersonaMode = 'default' | 'code-review' | 'analysis' | 'sales' | 'executive';
+
 export interface TaskConfig {
   prompt: string;
   taskId?: string;
@@ -18,6 +20,10 @@ export interface TaskConfig {
   sessionId?: string;
   /** Model ID for display name in progress events */
   modelId?: string;
+  /** Task mode to bias the assistant toward a specialized working style */
+  taskMode?: TaskPersonaMode;
+  /** Optional memory context for scoped self-learning */
+  memoryContext?: string;
 }
 
 export interface Task {
@@ -26,6 +32,8 @@ export interface Task {
   summary?: string;
   status: TaskStatus;
   sessionId?: string;
+  taskMode?: TaskPersonaMode;
+  memoryContext?: string;
   messages: TaskMessage[];
   createdAt: string;
   startedAt?: string;

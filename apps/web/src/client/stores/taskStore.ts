@@ -4,6 +4,7 @@ import {
   STARTUP_STAGES,
   type Task,
   type TaskConfig,
+  type TaskPersonaMode,
   type TaskStatus,
   type TaskUpdateEvent,
   type PermissionRequest,
@@ -11,27 +12,36 @@ import {
   type TaskMessage,
   type TodoItem,
 } from '@accomplish_ai/agent-core/common';
-import { getRodjerHelp } from '../lib/rodjerhelp';
+import { getLastPickedChatFiles, getRodjerHelp } from '../lib/rodjerhelp';
 
 // ATTACHMENTS_TASKSTORE_DIRECT_FIX
 const MAX_ATTACHMENT_PREVIEW_CHARS_PER_FILE = 12000;
 const MAX_ATTACHMENT_PREVIEW_CHARS_TOTAL = 32000;
 
-const getPickedFilesForPrompt = async (preferEmpty = false): Promise<string[]> => {
-  try {
-    const w = window as any;
-    const candidates = [
-      w?.accomplish?.getLastPickedChatFiles,
-      w?.rodjerhelpExtras?.getLastPickedChatFiles,
-      w?.getLastPickedChatFiles,
-    ];
-    for (const getter of candidates) {
-      if (typeof getter === 'function') {
-        const val = await getter();
-        const arr = Array.isArray(val) ? val.filter(Boolean).map(String) : [];
-        if (arr.length) return arr;
-      }
+function deriveMemoryContextFromPaths(paths: string[]): string | undefined {
+  if (!paths.length) {
+    return undefined;
+  }
+
+  const folderCounts = new Map<string, number>();
+  for (const filePath of paths) {
+    const parts = String(filePath).split(/[\\/]/).filter(Boolean);
+    const folderName = parts.length > 1 ? parts[parts.length - 2] : parts[parts.length - 1];
+    if (!folderName) {
+      continue;
     }
+    folderCounts.set(folderName, (folderCounts.get(folderName) || 0) + 1);
+  }
+
+  const [topFolder] =
+    [...folderCounts.entries()].sort((left, right) => right[1] - left[1])[0] || [];
+  return topFolder;
+}
+
+const getPickedFilesForPrompt = async (): Promise<string[]> => {
+  try {
+    const paths = await getLastPickedChatFiles();
+    if (paths.length) return paths;
   } catch (e) {
     console.warn('[ATTACHMENTS_TASKSTORE_DIRECT_FIX/getter] failed', e);
   }
@@ -40,23 +50,21 @@ const getPickedFilesForPrompt = async (preferEmpty = false): Promise<string[]> =
 
 const augmentPromptWithPickedFiles = async (text: string, preferEmpty = false): Promise<string> => {
   try {
-    if (typeof text !== 'string') return text as any;
+    if (typeof text !== 'string') return text;
     if (text.includes('📎 Вложения:')) return text;
 
-    const paths = preferEmpty ? [] : await getPickedFilesForPrompt(preferEmpty);
+    const paths = preferEmpty ? [] : await getPickedFilesForPrompt();
     if (!paths.length) return text;
 
-    const names = paths
-      .map((p) => String(p).split(/[\\/]/).pop() || String(p))
-      .slice(0, 10);
+    const names = paths.map((p) => String(p).split(/[\\/]/).pop() || String(p)).slice(0, 10);
     const more = paths.length > 10 ? ` +${String(paths.length - 10)}` : '';
     const header = `📎 Вложения: ${names.join(', ')}${more}`;
 
     let fileBlock = `\n\n[Attached files]\n${names.map((name) => `- ${name}`).join('\n')}`;
 
     try {
-      const api = getRodjerHelp() as any;
-      if (api && typeof api.readChatFiles === 'function') {
+      const api = getRodjerHelp();
+      if (typeof api.readChatFiles === 'function') {
         const files = await api.readChatFiles(paths);
         if (Array.isArray(files) && files.length) {
           let remaining = MAX_ATTACHMENT_PREVIEW_CHARS_TOTAL;
@@ -64,7 +72,7 @@ const augmentPromptWithPickedFiles = async (text: string, preferEmpty = false): 
 
           for (const f of files) {
             const fp = typeof f?.path === 'string' ? f.path : '';
-            const nm = f?.name || (String(fp).split(/[\\/]/).pop() || 'file');
+            const nm = f?.name || String(fp).split(/[\\/]/).pop() || 'file';
             const rawText = typeof f?.text === 'string' ? f.text : '';
             const errorText =
               typeof f?.error === 'string' && f.error.trim()
@@ -73,7 +81,8 @@ const augmentPromptWithPickedFiles = async (text: string, preferEmpty = false): 
 
             let preview = rawText || errorText;
             if (!preview) {
-              preview = 'Preview unavailable: file could not be read as text in desktop attachments.';
+              preview =
+                'Preview unavailable: file could not be read as text in desktop attachments.';
             }
 
             if (preview.length > MAX_ATTACHMENT_PREVIEW_CHARS_PER_FILE) {
@@ -110,7 +119,6 @@ const augmentPromptWithPickedFiles = async (text: string, preferEmpty = false): 
     return text;
   }
 };
-
 
 interface TaskUpdateBatchEvent {
   taskId: string;
@@ -152,8 +160,10 @@ interface TaskState {
   todos: TodoItem[];
   todosTaskId: string | null;
   authError: { providerId: string; message: string } | null;
+  taskMode: TaskPersonaMode;
   isLauncherOpen: boolean;
   launcherInitialPrompt: string | null;
+  setTaskMode: (mode: TaskPersonaMode) => void;
   openLauncher: () => void;
   openLauncherWithPrompt: (prompt: string) => void;
   closeLauncher: () => void;
@@ -201,8 +211,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   todos: [],
   todosTaskId: null,
   authError: null,
+  taskMode: 'default',
   isLauncherOpen: false,
   launcherInitialPrompt: null,
+  setTaskMode: (mode: TaskPersonaMode) => set({ taskMode: mode }),
 
   setSetupProgress: (taskId: string | null, message: string | null) => {
     let step = useTaskStore.getState().setupDownloadStep;
@@ -259,6 +271,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   startTask: async (config: TaskConfig) => {
     config = { ...config, prompt: await augmentPromptWithPickedFiles(config.prompt) };
     const accomplish = getRodjerHelp();
+    const memoryContext = deriveMemoryContextFromPaths(await getPickedFilesForPrompt());
+    const taskMode = get().taskMode;
     set({ isLoading: true, error: null });
     try {
       void accomplish.logEvent({
@@ -270,7 +284,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           hasAttachments: config.prompt?.includes('📎 Вложения:') ?? false,
         },
       });
-      const task = await accomplish.startTask(config);
+      const task = await accomplish.startTask({
+        ...config,
+        taskMode,
+        memoryContext,
+      });
       const currentTasks = get().tasks;
       set({
         currentTask: task,
@@ -300,7 +318,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   sendFollowUp: async (message: string) => {
     message = await augmentPromptWithPickedFiles(message);
     const accomplish = getRodjerHelp();
-    const { currentTask, startTask } = get();
+    const { currentTask, startTask, taskMode } = get();
     if (!currentTask) {
       set({ error: 'Нет активной задачи для продолжения' });
       void accomplish.logEvent({
@@ -366,7 +384,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           hasAttachments: message?.includes('📎 Вложения:') ?? false,
         },
       });
-      const task = await accomplish.resumeSession(sessionId, message, currentTask.id);
+      const task = await accomplish.resumeSession(sessionId, message, currentTask.id, {
+        taskMode,
+        memoryContext:
+          deriveMemoryContextFromPaths(await getPickedFilesForPrompt()) ||
+          currentTask.memoryContext,
+      });
 
       set((state) => ({
         currentTask: state.currentTask ? { ...state.currentTask, status: task.status } : null,
@@ -508,11 +531,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 ...(event.type === 'complete' && event.result?.sessionId
                   ? { sessionId: event.result.sessionId }
                   : {}),
-                ...(event.type === 'error' && event.sessionId ? { sessionId: event.sessionId } : {}),
+                ...(event.type === 'error' && event.sessionId
+                  ? { sessionId: event.sessionId }
+                  : {}),
                 ...(isCurrentTask && updatedCurrentTask
                   ? {
                       messages: updatedCurrentTask.messages,
-                      ...(updatedCurrentTask.sessionId ? { sessionId: updatedCurrentTask.sessionId } : {}),
+                      ...(updatedCurrentTask.sessionId
+                        ? { sessionId: updatedCurrentTask.sessionId }
+                        : {}),
                     }
                   : {}),
               }

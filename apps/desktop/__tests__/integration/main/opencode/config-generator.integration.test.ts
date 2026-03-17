@@ -23,6 +23,8 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
+const normalizeTestPath = (input: string): string => input.replaceAll('\\', '/');
+
 // Create temp directories for each test
 let tempUserDataDir: string;
 let tempAppDir: string;
@@ -55,6 +57,19 @@ const mockApp = {
 
 vi.mock('electron', () => ({
   app: mockApp,
+}));
+
+vi.mock('@main/utils/bundled-node', () => ({
+  getBundledNodePaths: vi.fn(() => {
+    const binDir = process.env.TEST_BUNDLED_NODE_BIN_PATH || '/mock/bundled-node/bin';
+    return {
+      nodePath: path.join(binDir, process.platform === 'win32' ? 'node.exe' : 'node'),
+      npmPath: path.join(binDir, process.platform === 'win32' ? 'npm.cmd' : 'npm'),
+      npxPath: path.join(binDir, process.platform === 'win32' ? 'npx.cmd' : 'npx'),
+      binDir,
+      nodeDir: path.dirname(binDir),
+    };
+  }),
 }));
 
 // Note: PERMISSION_API_PORT and QUESTION_API_PORT are now imported from @accomplish/shared
@@ -143,7 +158,10 @@ Use AskUserQuestion tool for user interaction.`,
             'file-permission': {
               type: 'local',
               enabled: true,
-              command: [nodeCommand, actualPath.join(options.mcpToolsPath, 'file-permission', 'dist', 'index.mjs')],
+              command: [
+                nodeCommand,
+                actualPath.join(options.mcpToolsPath, 'file-permission', 'dist', 'index.mjs'),
+              ],
               environment: {
                 PERMISSION_API_PORT: String(options.permissionApiPort),
               },
@@ -240,6 +258,9 @@ Use AskUserQuestion tool for user interaction.`,
       litellmConfig: null,
       azureFoundryConfig: null,
       lmstudioConfig: null,
+      openaiBaseUrl: '',
+      theme: 'system',
+      fileAccessMode: 'limited',
     })),
     clearAppSettings: vi.fn(),
 
@@ -291,6 +312,9 @@ describe('OpenCode Config Generator Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     originalEnv = { ...process.env };
     mockApp.isPackaged = false;
     mockEnabledConnectors = [];
@@ -456,7 +480,7 @@ describe('OpenCode Config Generator Integration', () => {
       expect(filePermission.type).toBe('local');
       expect(filePermission.enabled).toBe(true);
       expect(filePermission.command[0]).toBe(expectedNode);
-      expect(filePermission.command[1]).toContain('dist/index.mjs');
+      expect(normalizeTestPath(filePermission.command[1])).toContain('dist/index.mjs');
       expect(filePermission.environment.PERMISSION_API_PORT).toBe('9226');
     });
 

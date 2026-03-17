@@ -223,6 +223,7 @@ export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise
 
   return coreBuildCliArgs({
     prompt: config.prompt,
+    systemPromptAppend: config.systemPromptAppend,
     sessionId: config.sessionId,
     selectedModel: selectedModel
       ? {

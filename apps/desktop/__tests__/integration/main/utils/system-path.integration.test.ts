@@ -335,6 +335,10 @@ describe('System PATH Utilities', () => {
   });
 
   describe('findCommandInPath()', () => {
+    beforeEach(() => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+    });
+
     it('should find executable command in PATH', () => {
       // Arrange
       const searchPath = '/usr/bin:/usr/local/bin';

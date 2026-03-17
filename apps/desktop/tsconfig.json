@@ -16,7 +16,8 @@
       "@main/*": ["src/main/*"],
       "@accomplish_ai/agent-core/common": ["../../packages/agent-core/src/common.ts"],
       "@accomplish_ai/agent-core": ["../../packages/agent-core/src/index.ts"],
-      "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"]
+      "@accomplish_ai/agent-core/*": ["../../packages/agent-core/src/*"],
+      "xlsx": ["./node_modules/xlsx"]
     }
   },
   "include": ["src/main/**/*", "src/preload/**/*", "../../packages/agent-core/src/**/*"],

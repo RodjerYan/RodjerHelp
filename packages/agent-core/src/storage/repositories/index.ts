@@ -17,6 +17,13 @@ export {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getFileAccessMode,
+  setFileAccessMode,
+  getSelfLearningEnabled,
+  setSelfLearningEnabled,
+  getAutoApplyLearning,
+  setAutoApplyLearning,
+  getLearningSettings,
   getAppSettings,
   clearAppSettings,
   type AppSettings,
@@ -56,6 +63,13 @@ export {
   clearTodosForTask,
   type StoredTask,
 } from './taskHistory.js';
+
+export {
+  listLearningInsights,
+  upsertLearningInsight,
+  deleteLearningInsight,
+  clearLearningInsights,
+} from './learning.js';
 
 export {
   getAllSkills,

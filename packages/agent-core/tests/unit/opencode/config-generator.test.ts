@@ -16,6 +16,8 @@ describe('ConfigGenerator', () => {
   let mcpToolsPath: string;
   let userDataPath: string;
   const sharedBundledNodeBinPath = path.join(os.tmpdir(), 'config-gen-test-bundled-node', 'bin');
+  const normalizeTestPath = (input: string | undefined): string | undefined =>
+    input?.replaceAll('\\', '/');
   const requiredMcpDistEntries = [
     ['file-permission', 'dist/index.mjs'],
     ['ask-user-question', 'dist/index.mjs'],
@@ -160,6 +162,21 @@ describe('ConfigGenerator', () => {
       const result = generateConfig(options);
 
       expect(result.systemPrompt).toContain('Linux');
+    });
+
+    it('should instruct the agent to use injected attachment excerpts directly', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.systemPrompt).toContain('ATTACHED FILE CONTENT IS ALREADY IN THE USER MESSAGE');
+      expect(result.systemPrompt).toContain('[Attached file contents]');
+      expect(result.systemPrompt).toContain('ask the user to paste the file contents again');
+      expect(result.systemPrompt).toContain('which file should I use?');
     });
 
     it('should configure MCP servers', () => {
@@ -418,7 +435,7 @@ describe('ConfigGenerator', () => {
       // Should use node + dist path instead of tsx + src
       const command = result.mcpServers['file-permission'].command;
       expect(command?.[0]).toContain('node');
-      expect(command?.[1]).toContain('dist/index.mjs');
+      expect(normalizeTestPath(command?.[1])).toContain('dist/index.mjs');
     });
 
     it('should throw when bundled node is missing in packaged mode', () => {
@@ -445,7 +462,7 @@ describe('ConfigGenerator', () => {
 
       const command = result.mcpServers['file-permission'].command;
       expect(command?.[0]).toContain('node');
-      expect(command?.[1]).toContain('dist/index.mjs');
+      expect(normalizeTestPath(command?.[1])).toContain('dist/index.mjs');
     });
 
     it('should throw when MCP dist entry is missing', () => {

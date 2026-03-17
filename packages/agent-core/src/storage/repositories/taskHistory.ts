@@ -1,4 +1,10 @@
-import type { Task, TaskMessage, TaskStatus, TaskAttachment } from '../../common/types/task.js';
+import type {
+  Task,
+  TaskMessage,
+  TaskStatus,
+  TaskAttachment,
+  TaskPersonaMode,
+} from '../../common/types/task.js';
 import type { TodoItem } from '../../common/types/todo.js';
 import { getDatabase } from '../database.js';
 
@@ -9,6 +15,8 @@ export interface StoredTask {
   status: TaskStatus;
   messages: TaskMessage[];
   sessionId?: string;
+  taskMode?: TaskPersonaMode;
+  memoryContext?: string;
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
@@ -20,6 +28,8 @@ interface TaskRow {
   summary: string | null;
   status: string;
   session_id: string | null;
+  task_mode: string | null;
+  memory_context: string | null;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -100,6 +110,8 @@ function rowToTask(row: TaskRow): StoredTask {
     summary: row.summary || undefined,
     status: row.status as TaskStatus,
     sessionId: row.session_id || undefined,
+    taskMode: (row.task_mode as TaskPersonaMode | null) || undefined,
+    memoryContext: row.memory_context || undefined,
     createdAt: row.created_at,
     startedAt: row.started_at || undefined,
     completedAt: row.completed_at || undefined,
@@ -129,14 +141,16 @@ export function saveTask(task: Task): void {
   db.transaction(() => {
     db.prepare(
       `INSERT OR REPLACE INTO tasks
-        (id, prompt, summary, status, session_id, created_at, started_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, prompt, summary, status, session_id, task_mode, memory_context, created_at, started_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       task.id,
       task.prompt,
       task.summary || null,
       task.status,
       task.sessionId || null,
+      task.taskMode || null,
+      task.memoryContext || null,
       task.createdAt,
       task.startedAt || null,
       task.completedAt || null,

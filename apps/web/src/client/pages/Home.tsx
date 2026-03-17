@@ -5,7 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { TaskInputBar } from '@/components/landing/TaskInputBar';
 import { SettingsDialog } from '@/components/layout/SettingsDialog';
 import { useTaskStore } from '@/stores/taskStore';
-import { getRodjerHelp, type PickedFile } from '@/lib/rodjerhelp';
+import {
+  clearLastPickedChatFiles,
+  getRodjerHelp,
+  setLastPickedChatFiles,
+  type PickedFile,
+} from '@/lib/rodjerhelp';
 import { springs } from '@/lib/animations';
 import { ArrowUpLeft } from '@phosphor-icons/react';
 import { hasAnyReadyProvider } from '@accomplish_ai/agent-core/common';
@@ -83,7 +88,7 @@ export function HomePage() {
         return nextFiles;
       });
 
-      await (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+      await setLastPickedChatFiles(nextFiles);
     } catch (err) {
       console.error('Не удалось выбрать файлы:', err);
     }
@@ -92,11 +97,10 @@ export function HomePage() {
   const handleRemoveAttachment = useCallback((path: string) => {
     setAttachedFiles((prev) => {
       const nextFiles = prev.filter((f) => f.path !== path);
-      void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+      void setLastPickedChatFiles(nextFiles);
       return nextFiles;
     });
   }, []);
-
 
   const handleAddAttachments = useCallback((files: PickedFile[]) => {
     setAttachedFiles((prev) => {
@@ -110,7 +114,7 @@ export function HomePage() {
         }
       }
 
-      void (window as any)?.rodjerhelpExtras?.setLastPickedChatFiles?.(nextFiles);
+      void setLastPickedChatFiles(nextFiles);
       return nextFiles;
     });
   }, []);
@@ -119,6 +123,7 @@ export function HomePage() {
     if (!prompt.trim() || isLoading) return;
 
     const taskId = `task_${Date.now()}`;
+    await setLastPickedChatFiles(attachedFiles);
 
     const task = await startTask({
       prompt: prompt.trim(),
@@ -127,11 +132,11 @@ export function HomePage() {
 
     if (task) {
       setAttachedFiles([]);
-      await (window as any)?.rodjerhelpExtras?.clearLastPickedChatFiles?.();
+      await clearLastPickedChatFiles();
       setPrompt('');
       navigate(`/execution/${task.id}`);
     }
-  }, [prompt, isLoading, startTask, navigate]);
+  }, [attachedFiles, prompt, isLoading, startTask, navigate]);
 
   const handleSubmit = async () => {
     if (isLoading) {
@@ -201,7 +206,6 @@ export function HomePage() {
       }
     }, delay);
   }, []);
-
 
   useEffect(() => {
     if (showSettingsDialog) return;

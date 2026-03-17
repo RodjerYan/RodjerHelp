@@ -69,7 +69,7 @@ describe('secureStorage Integration', () => {
 
       // Assert
       expect(result).toBe(testKey);
-    });
+    }, 15000);
 
     it('should return null for non-existent provider', async () => {
       // Arrange

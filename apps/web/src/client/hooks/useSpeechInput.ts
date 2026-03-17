@@ -257,9 +257,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     formatErrorMessage,
   ]);
 
-   /**
-    * Начать запись аудио
-    */
+  /**
+   * Начать запись аудио
+   */
   const startRecording = useCallback(async () => {
     if (state.isRecording || state.isTranscribing) {
       return;
@@ -358,9 +358,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     stopRecording,
   ]);
 
-   /**
-    * Отмена записи без распознавания
-    */
+  /**
+   * Отмена записи без распознавания
+   */
   const cancelRecording = useCallback(() => {
     if (!state.isRecording) {
       return;
@@ -381,9 +381,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     onRecordingStateChange?.(false);
   }, [state.isRecording, cleanup, onRecordingStateChange]);
 
-   /**
-    * Повторить распознавание последней записи
-    */
+  /**
+   * Повторить распознавание последней записи
+   */
   const retry = useCallback(async () => {
     if (!lastAudioDataRef.current || state.isTranscribing || state.isRecording) {
       return;
@@ -427,9 +427,9 @@ export function useSpeechInput(options: UseSpeechInputOptions = {}): UseSpeechIn
     formatErrorMessage,
   ]);
 
-   /**
-    * Очистить текущую ошибку
-    */
+  /**
+   * Очистить текущую ошибку
+   */
   const clearError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }));
   }, []);

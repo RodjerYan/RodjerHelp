@@ -48,6 +48,11 @@ describe('SkillsManager', () => {
   beforeEach(() => {
     if (!moduleAvailable) return;
 
+    // Suppress console output before database initialization and migrations run
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Create a unique temporary directory for each test
     testDir = path.join(
       os.tmpdir(),
@@ -66,11 +71,6 @@ describe('SkillsManager', () => {
       bundledSkillsPath,
       userSkillsPath,
     });
-
-    // Suppress console.log during tests
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

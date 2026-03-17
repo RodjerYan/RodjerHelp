@@ -4,6 +4,7 @@ import { ipcMain, BrowserWindow, shell, dialog, nativeTheme } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { URL } from 'url';
 import fs from 'fs';
+import * as XLSX from 'xlsx';
 import {
   isOpenCodeCliInstalled,
   getOpenCodeCliVersion,
@@ -25,6 +26,13 @@ import {
   sanitizeString,
   generateTaskSummary,
   validateTaskConfig,
+  analyzeTaskForLearning,
+  buildLearningSystemPromptAppend,
+  buildRecommendedSkillsAppend,
+  buildTaskModeSystemPromptAppend,
+  mergeSystemPromptAppend,
+  recommendSkillsForTask,
+  resolveTaskMemoryContext,
 } from '@accomplish_ai/agent-core';
 import { createTaskId, createMessageId } from '@accomplish_ai/agent-core';
 import {
@@ -74,7 +82,6 @@ import {
   isElevenLabsConfigured,
 } from '../services/speechToText';
 
-
 import type {
   TaskConfig,
   PermissionResponse,
@@ -84,6 +91,7 @@ import type {
   AzureFoundryConfig,
   LiteLLMConfig,
   LMStudioConfig,
+  FileAccessMode,
 } from '@accomplish_ai/agent-core';
 import {
   DEFAULT_PROVIDERS,
@@ -102,9 +110,464 @@ import {
 import { skillsManager } from '../skills';
 import { registerVertexHandlers } from '../providers';
 
-let lastPickedChatFiles: Array<{ path: string; name: string; size: number; lastModified: number }> = [];
+let lastPickedChatFiles: Array<{ path: string; name: string; size: number; lastModified: number }> =
+  [];
 
 const API_KEY_VALIDATION_TIMEOUT_MS = 15000;
+const MAX_ATTACHMENT_TEXT_BYTES = 128 * 1024;
+const MAX_ATTACHMENT_PREVIEW_CHARS = 128 * 1024;
+const MAX_SPREADSHEET_SHEETS = 5;
+const MAX_SPREADSHEET_ROWS_PER_SHEET = 60;
+const MAX_SPREADSHEET_COLUMNS_PER_ROW = 20;
+const MAX_PRESENTATION_SLIDES = 12;
+const MAX_IMAGE_OCR_BYTES = 15 * 1024 * 1024;
+type SpreadsheetCell = string | number | boolean | Date | null | undefined;
+type SpreadsheetRow = SpreadsheetCell[];
+type SupportedTextEncoding = 'utf8' | 'utf16le' | 'utf16be';
+type AttachmentPreviewResult = {
+  text?: string;
+  error?: string;
+  truncated?: boolean;
+};
+
+function isSpreadsheetAttachment(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  return ['.xlsx', '.xls', '.xlsm', '.xlsb', '.ods'].includes(extension);
+}
+
+function isPdfAttachment(filePath: string): boolean {
+  return path.extname(filePath).toLowerCase() === '.pdf';
+}
+
+function isWordAttachment(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  return ['.docx', '.odt'].includes(extension);
+}
+
+function isPresentationAttachment(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  return ['.pptx', '.ppsx', '.potx', '.odp'].includes(extension);
+}
+
+function isImageAttachment(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  return ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.tif', '.tiff', '.svg'].includes(
+    extension,
+  );
+}
+
+function stringifySpreadsheetCell(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).replace(/\r?\n/g, ' ').trim();
+}
+
+function buildSpreadsheetPreview(filePath: string): string {
+  const workbookBuffer = fs.readFileSync(filePath);
+  const workbook = XLSX.read(workbookBuffer, {
+    type: 'buffer',
+    cellDates: true,
+    dense: true,
+  });
+  const sheetNames: string[] = workbook.SheetNames.slice(0, MAX_SPREADSHEET_SHEETS);
+
+  const sections = sheetNames.map((sheetName) => {
+    const sheet = workbook.Sheets[sheetName];
+    const rows: SpreadsheetRow[] = XLSX.utils.sheet_to_json<SpreadsheetRow>(sheet, {
+      header: 1,
+      raw: false,
+      defval: '',
+      blankrows: false,
+    });
+
+    const totalRows = rows.length;
+    const previewRows = rows.slice(0, MAX_SPREADSHEET_ROWS_PER_SHEET).map((row: SpreadsheetRow) => {
+      return row
+        .slice(0, MAX_SPREADSHEET_COLUMNS_PER_ROW)
+        .map((cell: SpreadsheetCell) => stringifySpreadsheetCell(cell))
+        .join(' | ');
+    });
+
+    const truncatedRows =
+      totalRows > MAX_SPREADSHEET_ROWS_PER_SHEET
+        ? `\n[Rows truncated: showing first ${MAX_SPREADSHEET_ROWS_PER_SHEET} of ${totalRows}]`
+        : '';
+
+    return `### Sheet: ${sheetName}\n${previewRows.join('\n')}${truncatedRows}`;
+  });
+
+  const omittedSheets =
+    workbook.SheetNames.length > MAX_SPREADSHEET_SHEETS
+      ? `\n[Sheets truncated: showing first ${MAX_SPREADSHEET_SHEETS} of ${workbook.SheetNames.length}]`
+      : '';
+
+  return `[Spreadsheet workbook]\n${sections.join('\n\n')}${omittedSheets}`;
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCharCode(parseInt(code, 16)));
+}
+
+function normalizeExtractedText(value: string): string {
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function truncatePreviewText(value: string, maxChars = MAX_ATTACHMENT_PREVIEW_CHARS): string {
+  if (value.length <= maxChars) {
+    return value;
+  }
+
+  return `${value.slice(0, maxChars)}\n[Preview truncated]`;
+}
+
+function extractXmlText(xml: string): string {
+  const withLineBreaks = xml
+    .replace(/<text:line-break\s*\/>/gi, '\n')
+    .replace(/<text:tab\s*\/>/gi, '\t')
+    .replace(/<\/(?:text:p|text:h|w:p|a:p|table:table-row)>/gi, '\n')
+    .replace(/<a:br\s*\/>/gi, '\n');
+  const withoutTags = withLineBreaks.replace(/<[^>]+>/g, ' ');
+  return normalizeExtractedText(decodeXmlEntities(withoutTags));
+}
+
+function extractPresentationText(xml: string): string {
+  const textRuns = [
+    ...xml.matchAll(/<(?:a:t|text:span|text:p)[^>]*>([\s\S]*?)<\/(?:a:t|text:span|text:p)>/gi),
+  ]
+    .map((match) => decodeXmlEntities(match[1] ?? '').trim())
+    .filter(Boolean);
+
+  if (textRuns.length > 0) {
+    return normalizeExtractedText(textRuns.join('\n'));
+  }
+
+  return extractXmlText(xml);
+}
+
+function compareZipEntryNumbers(left: string, right: string): number {
+  const leftMatch = left.match(/(\d+)(?!.*\d)/);
+  const rightMatch = right.match(/(\d+)(?!.*\d)/);
+  const leftNumber = leftMatch ? Number(leftMatch[1]) : 0;
+  const rightNumber = rightMatch ? Number(rightMatch[1]) : 0;
+
+  if (leftNumber !== rightNumber) {
+    return leftNumber - rightNumber;
+  }
+
+  return left.localeCompare(right);
+}
+
+function detectTextEncoding(buffer: Buffer): SupportedTextEncoding | null {
+  if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+    return 'utf8';
+  }
+
+  if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
+    return 'utf16le';
+  }
+
+  if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) {
+    return 'utf16be';
+  }
+
+  const sampleLength = Math.min(buffer.length, 4096);
+  if (sampleLength < 4) {
+    return 'utf8';
+  }
+
+  let zeroOnEvenIndex = 0;
+  let zeroOnOddIndex = 0;
+  for (let index = 0; index < sampleLength; index += 1) {
+    if (buffer[index] !== 0) {
+      continue;
+    }
+
+    if (index % 2 === 0) {
+      zeroOnEvenIndex += 1;
+    } else {
+      zeroOnOddIndex += 1;
+    }
+  }
+
+  const evenRatio = zeroOnEvenIndex / Math.ceil(sampleLength / 2);
+  const oddRatio = zeroOnOddIndex / Math.floor(sampleLength / 2);
+
+  if (oddRatio > 0.35 && evenRatio < 0.1) {
+    return 'utf16le';
+  }
+
+  if (evenRatio > 0.35 && oddRatio < 0.1) {
+    return 'utf16be';
+  }
+
+  if (buffer.subarray(0, sampleLength).includes(0)) {
+    return null;
+  }
+
+  return 'utf8';
+}
+
+function decodeTextBuffer(buffer: Buffer, encoding: SupportedTextEncoding): string {
+  if (encoding === 'utf8') {
+    return buffer.toString('utf8');
+  }
+
+  if (encoding === 'utf16le') {
+    const startOffset = buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe ? 2 : 0;
+    const evenLength = Math.floor((buffer.length - startOffset) / 2) * 2;
+    return buffer.subarray(startOffset, startOffset + evenLength).toString('utf16le');
+  }
+
+  const startOffset = buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff ? 2 : 0;
+  const evenLength = Math.floor((buffer.length - startOffset) / 2) * 2;
+  const swapped = Buffer.from(buffer.subarray(startOffset, startOffset + evenLength));
+
+  for (let index = 0; index < swapped.length; index += 2) {
+    const current = swapped[index];
+    swapped[index] = swapped[index + 1];
+    swapped[index + 1] = current;
+  }
+
+  return swapped.toString('utf16le');
+}
+
+async function buildZipXmlPreview(
+  filePath: string,
+  options: {
+    header: string;
+    entryNames?: string[];
+    entryPattern?: RegExp;
+    maxEntries?: number;
+    extractor?: (xml: string) => string;
+    sectionLabel?: (entryName: string, index: number) => string;
+  },
+): Promise<string> {
+  const jszipModule = await import('jszip');
+  const JSZip = jszipModule.default;
+  const archive = await JSZip.loadAsync(fs.readFileSync(filePath));
+
+  const extractor = options.extractor ?? extractXmlText;
+  let entryNames = options.entryNames ?? [];
+  if (entryNames.length === 0 && options.entryPattern) {
+    entryNames = Object.keys(archive.files)
+      .filter((entryName) => options.entryPattern?.test(entryName))
+      .sort(compareZipEntryNumbers);
+  }
+
+  const maxEntries = options.maxEntries ?? entryNames.length;
+  const previewEntries = entryNames.slice(0, maxEntries);
+  const sections: string[] = [];
+
+  for (let index = 0; index < previewEntries.length; index += 1) {
+    const entryName = previewEntries[index];
+    const zipEntry = archive.file(entryName);
+    if (!zipEntry) {
+      continue;
+    }
+
+    const xml = await zipEntry.async('string');
+    const text = extractor(xml);
+    if (!text) {
+      continue;
+    }
+
+    if (options.sectionLabel) {
+      sections.push(`### ${options.sectionLabel(entryName, index + 1)}\n${text}`);
+    } else {
+      sections.push(text);
+    }
+  }
+
+  const omittedEntries = entryNames.length > previewEntries.length;
+  const suffix = omittedEntries
+    ? `\n[Sections truncated: showing first ${previewEntries.length} of ${entryNames.length}]`
+    : '';
+
+  if (sections.length === 0) {
+    return `${options.header}\nNo readable text was detected.${suffix}`;
+  }
+
+  return `${options.header}\n${sections.join('\n\n')}${suffix}`;
+}
+
+async function buildPdfPreview(filePath: string): Promise<string> {
+  const pdfParseModule = await import('pdf-parse');
+  const { PDFParse } = pdfParseModule;
+  const parser = new PDFParse({ data: fs.readFileSync(filePath) });
+
+  try {
+    const result = await parser.getText();
+    const text = normalizeExtractedText(result.text ?? '');
+    if (text) {
+      return `[PDF document]\n${truncatePreviewText(text)}`;
+    }
+
+    return '[PDF document]\nNo selectable text was detected in the PDF.';
+  } finally {
+    await parser.destroy().catch(() => undefined);
+  }
+}
+
+async function buildWordPreview(filePath: string): Promise<string> {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === '.odt') {
+    return buildZipXmlPreview(filePath, {
+      header: '[OpenDocument text]',
+      entryNames: ['content.xml'],
+    });
+  }
+
+  const mammothModule = await import('mammoth');
+  const mammoth = 'default' in mammothModule ? mammothModule.default : mammothModule;
+  const result = await mammoth.extractRawText({ path: filePath });
+  const text = normalizeExtractedText(result.value ?? '');
+
+  if (!text) {
+    return '[Word document]\nNo readable text was detected.';
+  }
+
+  return `[Word document]\n${truncatePreviewText(text)}`;
+}
+
+async function buildPresentationPreview(filePath: string): Promise<string> {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === '.odp') {
+    return buildZipXmlPreview(filePath, {
+      header: '[OpenDocument presentation]',
+      entryNames: ['content.xml'],
+    });
+  }
+
+  return buildZipXmlPreview(filePath, {
+    header: '[Presentation deck]',
+    entryPattern: /^ppt\/slides\/slide\d+\.xml$/i,
+    maxEntries: MAX_PRESENTATION_SLIDES,
+    extractor: extractPresentationText,
+    sectionLabel: (_entryName, index) => `Slide ${index}`,
+  });
+}
+
+async function recognizeImageText(
+  image: string | Buffer,
+  loggerLabel: string,
+): Promise<string | null> {
+  const tesseractModule = await import('tesseract.js');
+  const worker = await tesseractModule.createWorker(['rus', 'eng'], undefined, {
+    logger: () => undefined,
+    errorHandler: () => undefined,
+  });
+
+  try {
+    const result = await worker.recognize(image, { rotateAuto: true });
+    const text = normalizeExtractedText(result.data.text ?? '');
+    if (!text) {
+      return null;
+    }
+
+    return `[Image OCR: ${loggerLabel}]\n${truncatePreviewText(text)}`;
+  } finally {
+    await worker.terminate().catch(() => undefined);
+  }
+}
+
+async function buildImagePreview(filePath: string): Promise<string> {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === '.svg') {
+    const text = extractXmlText(fs.readFileSync(filePath, 'utf8'));
+    if (!text) {
+      return '[SVG image]\nNo readable text was detected.';
+    }
+
+    return `[SVG image]\n${truncatePreviewText(text)}`;
+  }
+
+  const stat = fs.statSync(filePath);
+  if (stat.size > MAX_IMAGE_OCR_BYTES) {
+    return `[Image attachment]\nOCR skipped because the image is larger than ${Math.round(MAX_IMAGE_OCR_BYTES / (1024 * 1024))} MB.`;
+  }
+
+  const text = await recognizeImageText(filePath, path.basename(filePath));
+  if (!text) {
+    return '[Image attachment]\nNo readable text was detected in the image.';
+  }
+
+  return text;
+}
+
+function buildGenericTextPreview(filePath: string, maxBytes: number): AttachmentPreviewResult {
+  const buffer = fs.readFileSync(filePath);
+  const encoding = detectTextEncoding(buffer);
+  if (!encoding) {
+    return {
+      error: 'Binary file preview is not supported',
+    };
+  }
+
+  let previewBuffer = buffer;
+  if (encoding === 'utf16le' || encoding === 'utf16be') {
+    const safeLength = Math.floor(Math.min(buffer.length, maxBytes) / 2) * 2;
+    previewBuffer = buffer.subarray(0, safeLength);
+  } else {
+    previewBuffer = buffer.subarray(0, maxBytes);
+  }
+
+  const decodedText = normalizeExtractedText(decodeTextBuffer(previewBuffer, encoding));
+  return {
+    text: truncatePreviewText(decodedText || '[Text file is empty]'),
+    truncated: buffer.length > previewBuffer.length,
+  };
+}
+
+async function buildAttachmentPreview(
+  filePath: string,
+  maxBytes: number,
+): Promise<AttachmentPreviewResult> {
+  if (isSpreadsheetAttachment(filePath)) {
+    return {
+      text: buildSpreadsheetPreview(filePath),
+    };
+  }
+
+  if (isPdfAttachment(filePath)) {
+    return {
+      text: await buildPdfPreview(filePath),
+    };
+  }
+
+  if (isWordAttachment(filePath)) {
+    return {
+      text: await buildWordPreview(filePath),
+    };
+  }
+
+  if (isPresentationAttachment(filePath)) {
+    return {
+      text: await buildPresentationPreview(filePath),
+    };
+  }
+
+  if (isImageAttachment(filePath)) {
+    return {
+      text: await buildImagePreview(filePath),
+    };
+  }
+
+  return buildGenericTextPreview(filePath, maxBytes);
+}
 
 function assertTrustedWindow(window: BrowserWindow | null): BrowserWindow {
   if (!window || window.isDestroyed()) {
@@ -125,6 +588,63 @@ function isE2ESkipAuthEnabled(): boolean {
     process.argv.includes('--e2e-skip-auth') ||
     process.env.E2E_SKIP_AUTH === '1'
   );
+}
+
+function persistLearningFromTask(taskId: string): void {
+  const storage = getStorage();
+  if (!storage.getSelfLearningEnabled()) {
+    return;
+  }
+
+  const task = storage.getTask(taskId);
+  if (!task) {
+    return;
+  }
+
+  const scope = resolveTaskMemoryContext({
+    prompt: task.prompt,
+    taskMode: task.taskMode,
+    memoryContext: task.memoryContext,
+  });
+  const insights = analyzeTaskForLearning(task, scope);
+  for (const insight of insights) {
+    storage.upsertLearningInsight(insight);
+  }
+}
+
+async function appendTaskIntelligenceContext(config: TaskConfig): Promise<TaskConfig> {
+  const storage = getStorage();
+  const memoryContext = resolveTaskMemoryContext(config);
+  const relevantInsights = storage
+    .listLearningInsights()
+    .filter(
+      (insight) => insight.scopeKey === 'global' || insight.scopeKey === memoryContext.scopeKey,
+    );
+  const learningAppend = buildLearningSystemPromptAppend({
+    prompt: config.prompt,
+    insights: relevantInsights,
+    settings: storage.getLearningSettings(),
+  });
+  const taskModeAppend = buildTaskModeSystemPromptAppend(config.taskMode);
+  const enabledSkills = await skillsManager.getEnabled().catch(() => []);
+  const recommendedSkills = recommendSkillsForTask({
+    prompt: config.prompt,
+    taskMode: config.taskMode,
+    skills: enabledSkills,
+  });
+  const skillsAppend = buildRecommendedSkillsAppend(recommendedSkills);
+
+  return {
+    ...config,
+    memoryContext: memoryContext.memoryContext ?? config.memoryContext,
+    systemPromptAppend: mergeSystemPromptAppend(
+      mergeSystemPromptAppend(
+        mergeSystemPromptAppend(config.systemPromptAppend, learningAppend),
+        taskModeAppend,
+      ),
+      skillsAppend,
+    ),
+  };
 }
 
 function handle<Args extends unknown[], ReturnType = unknown>(
@@ -150,7 +670,7 @@ export function registerIPCHandlers(): void {
   handle('task:start', async (event: IpcMainInvokeEvent, config: TaskConfig) => {
     const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
     const sender = event.sender;
-    const validatedConfig = validateTaskConfig(config);
+    const validatedConfig = await appendTaskIntelligenceContext(validateTaskConfig(config));
 
     if (!isMockTaskEventsEnabled() && !storage.hasReadyProvider()) {
       throw new Error(
@@ -159,7 +679,11 @@ export function registerIPCHandlers(): void {
     }
 
     if (!permissionApiInitialized) {
-      initPermissionApi(window, () => taskManager.getActiveTaskId());
+      initPermissionApi(
+        window,
+        () => taskManager.getActiveTaskId(),
+        () => storage.getFileAccessMode(),
+      );
       startPermissionApiServer();
       startQuestionApiServer();
       permissionApiInitialized = true;
@@ -196,6 +720,8 @@ export function registerIPCHandlers(): void {
     });
 
     const task = await taskManager.startTask(taskId, validatedConfig, callbacks);
+    task.taskMode = validatedConfig.taskMode;
+    task.memoryContext = validatedConfig.memoryContext;
 
     const initialUserMessage: TaskMessage = {
       id: createMessageId(),
@@ -210,6 +736,7 @@ export function registerIPCHandlers(): void {
     generateTaskSummary(validatedConfig.prompt, getApiKey)
       .then((summary) => {
         storage.updateTaskSummary(taskId, summary);
+        persistLearningFromTask(taskId);
         if (!window.isDestroyed() && !sender.isDestroyed()) {
           sender.send('task:summary', { taskId, summary });
         }
@@ -311,6 +838,7 @@ export function registerIPCHandlers(): void {
       sessionId: string,
       prompt: string,
       existingTaskId?: string,
+      options?: { taskMode?: TaskConfig['taskMode']; memoryContext?: string },
     ) => {
       const window = assertTrustedWindow(BrowserWindow.fromWebContents(event.sender));
       const sender = event.sender;
@@ -318,6 +846,9 @@ export function registerIPCHandlers(): void {
       const validatedPrompt = sanitizeString(prompt, 'prompt');
       const validatedExistingTaskId = existingTaskId
         ? sanitizeString(existingTaskId, 'taskId', 128)
+        : undefined;
+      const validatedOptions = options
+        ? validateTaskConfig({ prompt: validatedPrompt, ...options })
         : undefined;
 
       if (!isMockTaskEventsEnabled() && !storage.hasReadyProvider()) {
@@ -347,16 +878,21 @@ export function registerIPCHandlers(): void {
         sender,
       });
 
-      const task = await taskManager.startTask(
+      const existingTask = validatedExistingTaskId
+        ? storage.getTask(validatedExistingTaskId)
+        : undefined;
+      const resumeConfig = await appendTaskIntelligenceContext({
+        prompt: validatedPrompt,
+        sessionId: validatedSessionId,
         taskId,
-        {
-          prompt: validatedPrompt,
-          sessionId: validatedSessionId,
-          taskId,
-          modelId: selectedModelForResume?.model,
-        },
-        callbacks,
-      );
+        modelId: selectedModelForResume?.model,
+        taskMode: validatedOptions?.taskMode || existingTask?.taskMode,
+        memoryContext: validatedOptions?.memoryContext || existingTask?.memoryContext,
+      });
+
+      const task = await taskManager.startTask(taskId, resumeConfig, callbacks);
+      task.taskMode = resumeConfig.taskMode;
+      task.memoryContext = resumeConfig.memoryContext;
 
       if (validatedExistingTaskId) {
         storage.updateTaskStatus(validatedExistingTaskId, task.status, new Date().toISOString());
@@ -974,6 +1510,59 @@ export function registerIPCHandlers(): void {
     }
   });
 
+  handle('settings:file-access-mode', async (_event: IpcMainInvokeEvent) => {
+    return storage.getFileAccessMode();
+  });
+
+  handle(
+    'settings:set-file-access-mode',
+    async (_event: IpcMainInvokeEvent, mode: FileAccessMode) => {
+      if (!['limited', 'full'].includes(mode)) {
+        throw new Error('Invalid file access mode');
+      }
+
+      storage.setFileAccessMode(mode);
+
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('settings:file-access-mode-changed', { mode });
+      }
+    },
+  );
+
+  handle('settings:learning', async (_event: IpcMainInvokeEvent) => {
+    return storage.getLearningSettings();
+  });
+
+  handle('settings:set-self-learning', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid self-learning flag');
+    }
+    storage.setSelfLearningEnabled(enabled);
+  });
+
+  handle(
+    'settings:set-auto-apply-learning',
+    async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('Invalid auto-apply learning flag');
+      }
+      storage.setAutoApplyLearning(enabled);
+    },
+  );
+
+  handle('learning:list-insights', async (_event: IpcMainInvokeEvent) => {
+    return storage.listLearningInsights();
+  });
+
+  handle('learning:delete-insight', async (_event: IpcMainInvokeEvent, insightId: string) => {
+    const validatedInsightId = sanitizeString(insightId, 'insightId', 128);
+    storage.deleteLearningInsight(validatedInsightId);
+  });
+
+  handle('learning:clear-insights', async (_event: IpcMainInvokeEvent) => {
+    storage.clearLearningInsights();
+  });
+
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {
     return storage.getAppSettings();
   });
@@ -1206,85 +1795,78 @@ export function registerIPCHandlers(): void {
     return result.filePaths[0];
   });
 
-  
-
-// Chat attachments: pick files for attaching to a task prompt.
-// Returns file metadata for display in the renderer (no file contents are read here).
-handle('chat:pick-files', async () => {
-  const mainWindow = BrowserWindow.getAllWindows()[0];
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Выберите файлы',
-    properties: ['openFile', 'multiSelections'],
-  });
-  if (result.canceled || result.filePaths.length === 0) {
-    return [];
-  }
-  lastPickedChatFiles = result.filePaths.map((filePath) => {
-    try {
-      const stat = fs.statSync(filePath);
-      return {
-        path: filePath,
-        name: path.basename(filePath),
-        size: stat.size,
-        lastModified: stat.mtimeMs,
-      };
-    } catch {
-      return {
-        path: filePath,
-        name: path.basename(filePath),
-        size: 0,
-        lastModified: Date.now(),
-      };
+  // Chat attachments: pick files for attaching to a task prompt.
+  // Returns file metadata for display in the renderer (no file contents are read here).
+  handle('chat:pick-files', async () => {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Выберите файлы',
+      properties: ['openFile', 'multiSelections'],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return [];
     }
-  });
-  return lastPickedChatFiles;
-});
-
-handle('chat:last-picked-files', async () => {
-  return lastPickedChatFiles.map((file) => file.path).filter(Boolean);
-});
-
-handle('chat:read-files', async (_event, paths: string[]) => {
-  const maxBytes = 128 * 1024;
-  const safePaths = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string' && p.trim().length > 0) : [];
-
-  return safePaths.map((filePath) => {
-    try {
-      const stat = fs.statSync(filePath);
-      const buffer = fs.readFileSync(filePath);
-      const sample = buffer.subarray(0, Math.min(buffer.length, 4096));
-      const isBinary = sample.includes(0);
-
-      if (isBinary) {
+    lastPickedChatFiles = result.filePaths.map((filePath) => {
+      try {
+        const stat = fs.statSync(filePath);
         return {
           path: filePath,
           name: path.basename(filePath),
           size: stat.size,
-          error: 'Binary file preview is not supported',
+          lastModified: stat.mtimeMs,
+        };
+      } catch {
+        return {
+          path: filePath,
+          name: path.basename(filePath),
+          size: 0,
+          lastModified: Date.now(),
         };
       }
-
-      const truncated = buffer.length > maxBytes;
-      const text = buffer.subarray(0, maxBytes).toString('utf8');
-
-      return {
-        path: filePath,
-        name: path.basename(filePath),
-        size: stat.size,
-        truncated,
-        text,
-      };
-    } catch (error) {
-      return {
-        path: filePath,
-        name: path.basename(filePath),
-        size: 0,
-        error: error instanceof Error ? error.message : 'Failed to read file',
-      };
-    }
+    });
+    return lastPickedChatFiles;
   });
-});
-handle('skills:add-from-file', async (_event, filePath: string) => {
+
+  handle('chat:last-picked-files', async () => {
+    return lastPickedChatFiles.map((file) => file.path).filter(Boolean);
+  });
+
+  handle('chat:read-files', async (_event, paths: string[]) => {
+    const safePaths = Array.isArray(paths)
+      ? paths.filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+      : [];
+    const files: Array<{
+      path: string;
+      name: string;
+      size: number;
+      text?: string;
+      error?: string;
+      truncated?: boolean;
+    }> = [];
+
+    for (const filePath of safePaths) {
+      try {
+        const stat = fs.statSync(filePath);
+        const preview = await buildAttachmentPreview(filePath, MAX_ATTACHMENT_TEXT_BYTES);
+        files.push({
+          path: filePath,
+          name: path.basename(filePath),
+          size: stat.size,
+          ...preview,
+        });
+      } catch (error) {
+        files.push({
+          path: filePath,
+          name: path.basename(filePath),
+          size: 0,
+          error: error instanceof Error ? error.message : 'Failed to read file',
+        });
+      }
+    }
+
+    return files;
+  });
+  handle('skills:add-from-file', async (_event, filePath: string) => {
     return skillsManager.addFromFile(filePath);
   });
 

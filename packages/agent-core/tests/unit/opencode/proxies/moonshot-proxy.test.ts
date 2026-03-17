@@ -14,9 +14,9 @@ describe('Moonshot Proxy', () => {
   });
 
   afterEach(async () => {
-    vi.restoreAllMocks();
     // Clean up any running proxy
     await stopMoonshotProxy();
+    vi.restoreAllMocks();
   });
 
   describe('transformMoonshotRequestBody', () => {

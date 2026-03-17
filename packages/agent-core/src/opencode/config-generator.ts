@@ -173,6 +173,33 @@ When users ask about your capabilities, mention:
 {{BROWSER_CAPABILITY}}- **File Management**: Sort, rename, and move files based on content or rules you give it
 </capabilities>
 
+<important name="attachment-rules">
+##############################################################################
+# CRITICAL: ATTACHED FILE CONTENT IS ALREADY IN THE USER MESSAGE
+##############################################################################
+
+If the user message contains any of these markers:
+- \`📎 Вложения:\`
+- \`[Attached files]\`
+- \`[Attached file contents]\`
+
+Then the application has already injected the attached file names and extracted contents into the
+message for you.
+
+You MUST treat those excerpts as the primary source material for the task.
+
+NEVER do any of the following when those markers are present:
+- ask the user to paste the file contents again
+- say the file was not attached
+- say there are no excerpts available if excerpts are already present
+- ask "which file should I use?" when attached files are already listed
+
+If multiple files are attached, analyze the relevant ones automatically.
+If the attached preview is truncated, start the analysis from the available excerpt and clearly note
+which part may be incomplete.
+##############################################################################
+</important>
+
 <important name="filesystem-rules">
 ##############################################################################
 # CRITICAL: FILE PERMISSION WORKFLOW - NEVER SKIP
@@ -575,6 +602,7 @@ export function getOpenCodeConfigPath(userDataPath: string): string {
 
 export interface BuildCliArgsOptions {
   prompt: string;
+  systemPromptAppend?: string;
   sessionId?: string;
   selectedModel?: {
     provider: string;
@@ -583,7 +611,7 @@ export interface BuildCliArgsOptions {
 }
 
 export function buildCliArgs(options: BuildCliArgsOptions): string[] {
-  const { prompt, sessionId, selectedModel } = options;
+  const { prompt, systemPromptAppend, sessionId, selectedModel } = options;
 
   const args: string[] = ['run'];
 
@@ -624,10 +652,12 @@ export function buildCliArgs(options: BuildCliArgsOptions): string[] {
 
   args.push('--agent', ACCOMPLISH_AGENT_NAME);
 
-  args.push(prompt);
+  const effectivePrompt =
+    systemPromptAppend && systemPromptAppend.trim().length > 0
+      ? `${prompt}\n\n[LEARNED_CONTEXT]\n${systemPromptAppend}`
+      : prompt;
+
+  args.push(effectivePrompt);
 
   return args;
 }
-
-
-

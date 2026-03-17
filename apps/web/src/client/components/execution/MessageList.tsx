@@ -28,19 +28,44 @@ export interface MessageBubbleProps {
 const COPIED_STATE_DURATION_MS = 1000;
 
 const ATTACHMENTS_HEADER_RE = /^📎\s*Вложения:\s*(.+)$/m;
-const ATTACHMENTS_PAYLOAD_RE = /\n\n\[(?:Attached file paths|Attached files|Attached file contents)\][\s\S]*$/m;
+const ATTACHMENTS_PAYLOAD_RE =
+  /\n\n\[(?:Attached file paths|Attached files|Attached file contents)\][\s\S]*$/m;
 
 const whiteMarkdownComponents: Components = {
-  p: ({ node, ...props }) => <p className="m-0 whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff' }} {...props} />,
-  strong: ({ node, ...props }) => <strong className="font-semibold text-white" style={{ color: '#ffffff' }} {...props} />,
-  em: ({ node, ...props }) => <em className="text-white" style={{ color: '#ffffff' }} {...props} />,
-  li: ({ node, ...props }) => <li className="text-white" style={{ color: '#ffffff' }} {...props} />,
-  ul: ({ node, ...props }) => <ul className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />,
-  ol: ({ node, ...props }) => <ol className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />,
-  code: ({ node, className, children, ...props }) => (
-    <code className={cn(className, 'text-white')} style={{ color: '#ffffff' }} {...props}>{children}</code>
+  p: ({ node: _node, ...props }) => (
+    <p
+      className="m-0 whitespace-pre-wrap break-words text-white"
+      style={{ color: '#ffffff' }}
+      {...props}
+    />
   ),
-  a: ({ node, ...props }) => <a className="text-white underline underline-offset-4" style={{ color: '#ffffff' }} {...props} />,
+  strong: ({ node: _node, ...props }) => (
+    <strong className="font-semibold text-white" style={{ color: '#ffffff' }} {...props} />
+  ),
+  em: ({ node: _node, ...props }) => (
+    <em className="text-white" style={{ color: '#ffffff' }} {...props} />
+  ),
+  li: ({ node: _node, ...props }) => (
+    <li className="text-white" style={{ color: '#ffffff' }} {...props} />
+  ),
+  ul: ({ node: _node, ...props }) => (
+    <ul className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />
+  ),
+  ol: ({ node: _node, ...props }) => (
+    <ol className="my-0 pl-5 text-white" style={{ color: '#ffffff' }} {...props} />
+  ),
+  code: ({ node: _node, className, children, ...props }) => (
+    <code className={cn(className, 'text-white')} style={{ color: '#ffffff' }} {...props}>
+      {children}
+    </code>
+  ),
+  a: ({ node: _node, ...props }) => (
+    <a
+      className="text-white underline underline-offset-4"
+      style={{ color: '#ffffff' }}
+      {...props}
+    />
+  ),
 };
 
 function extractAttachmentMeta(content: string): { files: string[]; cleaned: string } {
@@ -60,7 +85,6 @@ function extractAttachmentMeta(content: string): { files: string[]; cleaned: str
 
   return { files, cleaned };
 }
-
 
 export const MessageBubble = memo(
   function MessageBubble({
@@ -160,7 +184,7 @@ export const MessageBubble = memo(
         transition={springs.snappy}
         className={cn(
           'group flex w-full',
-          isUser ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'
+          isUser ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start',
         )}
       >
         {isTool &&
@@ -223,15 +247,17 @@ export const MessageBubble = memo(
                           >
                             <Paperclip className="h-3.5 w-3.5 shrink-0" />
                             <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                            <span className="max-w-[260px] truncate font-medium tracking-[0.01em]">{file}</span>
+                            <span className="max-w-[260px] truncate font-medium tracking-[0.01em]">
+                              {file}
+                            </span>
                           </div>
                         ))}
                       </div>
                     )}
                     {visibleContent && (
                       <p className="text-[15px] leading-6 whitespace-pre-wrap break-words text-white">
-                          {visibleContent}
-                        </p>
+                        {visibleContent}
+                      </p>
                     )}
                   </div>
                 ) : isAssistant && shouldStream && !streamComplete ? (
@@ -247,10 +273,18 @@ export const MessageBubble = memo(
                           proseClasses,
                           isSystem
                             ? 'text-[14px] leading-6 !text-white opacity-100 [&_p]:!m-0 [&_*]:!text-white'
-                            : !isUser && (isAssistant ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white' : 'text-[15px] leading-6')
+                            : !isUser &&
+                                (isAssistant
+                                  ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white'
+                                  : 'text-[15px] leading-6'),
                         )}
                       >
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}>{streamedText}</ReactMarkdown>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}
+                        >
+                          {streamedText}
+                        </ReactMarkdown>
                       </div>
                     )}
                   </StreamingText>
@@ -260,10 +294,18 @@ export const MessageBubble = memo(
                       proseClasses,
                       isSystem
                         ? 'text-[14px] leading-6 !text-white opacity-100 [&_p]:!m-0 [&_*]:!text-white'
-                        : !isUser && (isAssistant ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white' : 'text-[15px] leading-6')
+                        : !isUser &&
+                            (isAssistant
+                              ? 'text-[15px] leading-6 !text-white opacity-100 [&_p]:!text-white [&_span]:!text-white [&_li]:!text-white [&_code]:!text-white'
+                              : 'text-[15px] leading-6'),
                     )}
                   >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}>{visibleContent}</ReactMarkdown>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={isSystem || isAssistant ? whiteMarkdownComponents : undefined}
+                    >
+                      {visibleContent}
+                    </ReactMarkdown>
                   </div>
                 )}
                 <p
@@ -306,7 +348,11 @@ export const MessageBubble = memo(
                       'absolute bottom-2 right-2',
                       'opacity-0 group-hover:opacity-100 transition-all duration-200',
                       'p-1 rounded',
-                      isUser ? 'hover:bg-white/18' : isSystem ? 'hover:bg-white/10' : 'hover:bg-accent',
+                      isUser
+                        ? 'hover:bg-white/18'
+                        : isSystem
+                          ? 'hover:bg-white/10'
+                          : 'hover:bg-accent',
                       isUser
                         ? !copied
                           ? 'text-white/70 hover:text-white'
@@ -343,6 +389,3 @@ export const MessageBubble = memo(
     prev.showContinueButton === next.showContinueButton &&
     prev.isLoading === next.isLoading,
 );
-
-
-

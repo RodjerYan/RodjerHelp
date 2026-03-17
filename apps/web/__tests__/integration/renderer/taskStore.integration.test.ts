@@ -79,9 +79,13 @@ const mockAccomplish = {
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the store
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
+  getLastPickedChatFiles: vi.fn().mockResolvedValue([]),
+  setLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
+  clearLastPickedChatFiles: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock window.accomplish for global subscriptions
@@ -206,7 +210,11 @@ describe('taskStore Integration', () => {
       const state = useTaskStore.getState();
 
       // Assert
-      expect(mockAccomplish.startTask).toHaveBeenCalledWith(config);
+      expect(mockAccomplish.startTask).toHaveBeenCalledWith({
+        ...config,
+        taskMode: 'default',
+        memoryContext: undefined,
+      });
       expect(result).toEqual(mockTask);
       expect(state.currentTask).toEqual(mockTask);
       expect(state.isLoading).toBe(false);
@@ -253,7 +261,7 @@ describe('taskStore Integration', () => {
 
       // Assert
       expect(result).toBeNull();
-      expect(state.error).toBe('Failed to start task');
+      expect(state.error).toBe('Не удалось запустить задачу');
     });
 
     it('should add task to tasks list', async () => {
@@ -303,7 +311,7 @@ describe('taskStore Integration', () => {
       const state = useTaskStore.getState();
 
       // Assert
-      expect(state.error).toBe('No active task to continue');
+      expect(state.error).toBe('Нет активной задачи для продолжения');
     });
 
     it('should set error when task has no session', async () => {
@@ -317,7 +325,7 @@ describe('taskStore Integration', () => {
       const state = useTaskStore.getState();
 
       // Assert
-      expect(state.error).toBe('No session to continue - please start a new task');
+      expect(state.error).toBe('Нет сессии для продолжения — начните новую задачу');
     });
 
     it('should start fresh task for interrupted task without session', async () => {
@@ -359,6 +367,10 @@ describe('taskStore Integration', () => {
         'session-abc',
         'Continue please',
         'task-123',
+        {
+          taskMode: 'default',
+          memoryContext: undefined,
+        },
       );
       expect(state.currentTask?.status).toBe('running');
     });
@@ -383,6 +395,10 @@ describe('taskStore Integration', () => {
         'result-session-xyz',
         'More work',
         'task-123',
+        {
+          taskMode: 'default',
+          memoryContext: undefined,
+        },
       );
     });
 
@@ -430,7 +446,6 @@ describe('taskStore Integration', () => {
       expect(state.currentTask?.status).toBe('failed');
       expect(state.isLoading).toBe(false);
     });
-
 
     it('should preserve sessionId when an error update arrives', async () => {
       // Arrange
@@ -715,7 +730,7 @@ describe('taskStore Integration', () => {
 
       // Assert
       expect(state.currentTask).toBeNull();
-      expect(state.error).toBe('Task not found');
+      expect(state.error).toBe('Задача не найдена');
     });
   });
 

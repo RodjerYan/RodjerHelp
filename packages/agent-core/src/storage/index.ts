@@ -47,6 +47,8 @@ export {
   setOpenAiBaseUrl,
   getTheme,
   setTheme,
+  getFileAccessMode,
+  setFileAccessMode,
   getAppSettings,
   clearAppSettings,
   type AppSettings,

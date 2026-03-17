@@ -1,5 +1,7 @@
 import { app, dialog, ipcMain, type BrowserWindow } from 'electron';
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-updater';
+import fs from 'fs';
+import path from 'path';
 
 type UpdateStatusState = {
   status:
@@ -22,6 +24,18 @@ let checking = false;
 let currentStatus: UpdateStatusState = { status: 'idle' };
 let mainWindowGetter: (() => BrowserWindow | null) | null = null;
 
+function getUpdateConfigPath(): string {
+  return path.join(process.resourcesPath, 'app-update.yml');
+}
+
+function isUpdaterAvailable(): boolean {
+  if (!app.isPackaged) {
+    return false;
+  }
+
+  return fs.existsSync(getUpdateConfigPath());
+}
+
 function getMainWindow(): BrowserWindow | null {
   return mainWindowGetter?.() ?? null;
 }
@@ -33,7 +47,6 @@ function emitStatus(status: UpdateStatusState): void {
     win.webContents.send('update:status', currentStatus);
   }
 }
-
 
 async function showMessage(
   win: BrowserWindow | null | undefined,
@@ -103,10 +116,12 @@ async function promptInstall(info: UpdateInfo): Promise<void> {
 }
 
 export async function triggerUpdateCheck(manual = false): Promise<UpdateStatusState> {
-  if (!app.isPackaged) {
+  if (!isUpdaterAvailable()) {
     const devStatus: UpdateStatusState = {
       status: 'not-available',
-      message: 'Проверка обновлений доступна только в собранной версии приложения.',
+      message: app.isPackaged
+        ? 'Автообновление недоступно для этой сборки приложения.'
+        : 'Проверка обновлений доступна только в собранной версии приложения.',
     };
     emitStatus(devStatus);
     if (manual) {
@@ -129,7 +144,11 @@ export async function triggerUpdateCheck(manual = false): Promise<UpdateStatusSt
     const message = error instanceof Error ? error.message : String(error);
     emitStatus({ status: 'error', message });
     if (manual) {
-      await showError('Не удалось проверить обновления', 'Проверка обновлений завершилась ошибкой.', message);
+      await showError(
+        'Не удалось проверить обновления',
+        'Проверка обновлений завершилась ошибкой.',
+        message,
+      );
     }
     return currentStatus;
   } finally {
@@ -158,6 +177,10 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
   initialized = true;
   mainWindowGetter = getWindow;
 
+  if (!isUpdaterAvailable()) {
+    return;
+  }
+
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -171,7 +194,11 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
   });
 
   autoUpdater.on('update-not-available', (info: UpdateInfo) => {
-    emitStatus({ status: 'not-available', version: info.version, message: 'У вас уже установлена последняя версия.' });
+    emitStatus({
+      status: 'not-available',
+      version: info.version,
+      message: 'У вас уже установлена последняя версия.',
+    });
   });
 
   autoUpdater.on('download-progress', (progress: ProgressInfo) => {

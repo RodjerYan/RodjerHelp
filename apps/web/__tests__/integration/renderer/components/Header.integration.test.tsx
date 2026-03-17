@@ -34,7 +34,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const brandLink = screen.getByRole('link', { name: /accomplish/i });
+      const brandLink = screen.getByRole('link', { name: /роджер хелп/i });
       expect(brandLink).toBeInTheDocument();
       expect(brandLink).toHaveAttribute('href', '/');
     });
@@ -48,7 +48,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText('Accomplish')).toBeInTheDocument();
+      expect(screen.getByText('Роджер Хелп')).toBeInTheDocument();
     });
   });
 
@@ -75,7 +75,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const homeLink = screen.getByRole('link', { name: /^home$/i });
+      const homeLink = screen.getByRole('link', { name: /^главная$/i });
       expect(homeLink).toBeInTheDocument();
       expect(homeLink).toHaveAttribute('href', '/');
     });
@@ -89,7 +89,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const historyLink = screen.getByRole('link', { name: /history/i });
+      const historyLink = screen.getByRole('link', { name: /история/i });
       expect(historyLink).toBeInTheDocument();
       expect(historyLink).toHaveAttribute('href', '/history');
     });
@@ -103,7 +103,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const settingsLink = screen.getByRole('link', { name: /settings/i });
+      const settingsLink = screen.getByRole('link', { name: /настройки/i });
       expect(settingsLink).toBeInTheDocument();
       expect(settingsLink).toHaveAttribute('href', '/settings');
     });
@@ -133,8 +133,8 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const homeLink = screen.getByRole('link', { name: /^home$/i });
-      expect(homeLink.className).toContain('bg-accent');
+      const homeLink = screen.getByRole('link', { name: /^главная$/i });
+      expect(homeLink.className).toContain('bg-white/10');
     });
 
     it('should mark History link as active when on history route', () => {
@@ -146,8 +146,8 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const historyLink = screen.getByRole('link', { name: /history/i });
-      expect(historyLink.className).toContain('bg-accent');
+      const historyLink = screen.getByRole('link', { name: /история/i });
+      expect(historyLink.className).toContain('bg-white/10');
     });
 
     it('should mark Settings link as active when on settings route', () => {
@@ -159,8 +159,8 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const settingsLink = screen.getByRole('link', { name: /settings/i });
-      expect(settingsLink.className).toContain('bg-accent');
+      const settingsLink = screen.getByRole('link', { name: /настройки/i });
+      expect(settingsLink.className).toContain('bg-white/10');
     });
 
     it('should not mark Home link as active when on other routes', () => {
@@ -172,7 +172,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const homeLink = screen.getByRole('link', { name: /^home$/i });
+      const homeLink = screen.getByRole('link', { name: /^главная$/i });
       expect(homeLink.className).toContain('text-muted-foreground');
     });
 
@@ -185,13 +185,13 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const homeLink = screen.getByRole('link', { name: /^home$/i });
-      const historyLink = screen.getByRole('link', { name: /history/i });
-      const settingsLink = screen.getByRole('link', { name: /settings/i });
+      const homeLink = screen.getByRole('link', { name: /^главная$/i });
+      const historyLink = screen.getByRole('link', { name: /история/i });
+      const settingsLink = screen.getByRole('link', { name: /настройки/i });
 
-      expect(homeLink.className).toContain('rounded-md');
-      expect(historyLink.className).toContain('rounded-md');
-      expect(settingsLink.className).toContain('rounded-md');
+      expect(homeLink.className).toContain('rounded-xl');
+      expect(historyLink.className).toContain('rounded-xl');
+      expect(settingsLink.className).toContain('rounded-xl');
     });
   });
 
@@ -218,7 +218,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const brandLink = screen.getByRole('link', { name: /accomplish/i });
+      const brandLink = screen.getByRole('link', { name: /роджер хелп/i });
       expect(brandLink.className).toContain('no-drag');
     });
 
@@ -244,7 +244,7 @@ describe('Header Integration', () => {
       );
 
       // Assert
-      const brandLink = screen.getByRole('link', { name: /accomplish/i });
+      const brandLink = screen.getByRole('link', { name: /роджер хелп/i });
       const svg = brandLink.querySelector('svg');
       expect(svg).toBeInTheDocument();
     });
@@ -260,13 +260,13 @@ describe('Header Integration', () => {
       );
 
       // Assert - None of the standard routes should be active
-      const homeLink = screen.getByRole('link', { name: /^home$/i });
-      const historyLink = screen.getByRole('link', { name: /history/i });
-      const settingsLink = screen.getByRole('link', { name: /settings/i });
+      const homeLink = screen.getByRole('link', { name: /^главная$/i });
+      const historyLink = screen.getByRole('link', { name: /история/i });
+      const settingsLink = screen.getByRole('link', { name: /настройки/i });
 
-      expect(homeLink.className).not.toContain('nav-link-active');
-      expect(historyLink.className).not.toContain('nav-link-active');
-      expect(settingsLink.className).not.toContain('nav-link-active');
+      expect(homeLink.className).not.toContain('bg-white/10');
+      expect(historyLink.className).not.toContain('bg-white/10');
+      expect(settingsLink.className).not.toContain('bg-white/10');
     });
   });
 });

@@ -21,6 +21,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import JSZip from 'jszip';
+import * as XLSX from 'xlsx';
 
 // Mock electron modules before importing handlers
 vi.mock('electron', () => {
@@ -109,6 +114,44 @@ vi.mock('@main/opencode/auth', () => ({
   loginOpenAiWithChatGpt: vi.fn(() => Promise.resolve({ openedUrl: undefined })),
 }));
 
+const mockAttachmentPreviewState = vi.hoisted(() => ({
+  pdfText: 'PDF report content',
+  mammothText: 'Word document content',
+  imageOcrText: 'Recognized image text',
+}));
+
+vi.mock('pdf-parse', () => ({
+  PDFParse: class MockPdfParse {
+    async getText(): Promise<{ text: string }> {
+      return { text: mockAttachmentPreviewState.pdfText };
+    }
+
+    async destroy(): Promise<void> {
+      return undefined;
+    }
+  },
+}));
+
+vi.mock('mammoth', () => ({
+  default: {
+    extractRawText: vi.fn(async () => ({
+      value: mockAttachmentPreviewState.mammothText,
+      messages: [],
+    })),
+  },
+}));
+
+vi.mock('tesseract.js', () => ({
+  createWorker: vi.fn(async () => ({
+    recognize: vi.fn(async () => ({
+      data: {
+        text: mockAttachmentPreviewState.imageOcrText,
+      },
+    })),
+    terminate: vi.fn(async () => undefined),
+  })),
+}));
+
 // Mock task history (stored in test state)
 const mockTasks: Array<{
   id: string;
@@ -123,6 +166,10 @@ let mockDebugMode = false;
 let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
 let mockOpenAiBaseUrl = '';
+let mockTheme: 'system' | 'light' | 'dark' = 'system';
+let mockFileAccessMode: 'limited' | 'full' = 'limited';
+let mockSelfLearningEnabled = true;
+let mockAutoApplyLearning = true;
 
 // Mock @accomplish_ai/agent-core - comprehensive mock covering all exports used by handlers.ts
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
@@ -169,6 +216,10 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
       onboardingComplete: mockOnboardingComplete,
       selectedModel: mockSelectedModel,
       openaiBaseUrl: mockOpenAiBaseUrl,
+      theme: mockTheme,
+      fileAccessMode: mockFileAccessMode,
+      selfLearningEnabled: mockSelfLearningEnabled,
+      autoApplyLearning: mockAutoApplyLearning,
     })),
     getOnboardingComplete: vi.fn(() => mockOnboardingComplete),
     setOnboardingComplete: vi.fn((complete: boolean) => {
@@ -182,6 +233,30 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
     setOpenAiBaseUrl: vi.fn((baseUrl: string) => {
       mockOpenAiBaseUrl = baseUrl;
     }),
+    getTheme: vi.fn(() => mockTheme),
+    setTheme: vi.fn((theme: 'system' | 'light' | 'dark') => {
+      mockTheme = theme;
+    }),
+    getFileAccessMode: vi.fn(() => mockFileAccessMode),
+    setFileAccessMode: vi.fn((mode: 'limited' | 'full') => {
+      mockFileAccessMode = mode;
+    }),
+    getSelfLearningEnabled: vi.fn(() => mockSelfLearningEnabled),
+    setSelfLearningEnabled: vi.fn((enabled: boolean) => {
+      mockSelfLearningEnabled = enabled;
+    }),
+    getAutoApplyLearning: vi.fn(() => mockAutoApplyLearning),
+    setAutoApplyLearning: vi.fn((enabled: boolean) => {
+      mockAutoApplyLearning = enabled;
+    }),
+    getLearningSettings: vi.fn(() => ({
+      selfLearningEnabled: mockSelfLearningEnabled,
+      autoApplyLearning: mockAutoApplyLearning,
+    })),
+    listLearningInsights: vi.fn(() => []),
+    upsertLearningInsight: vi.fn(),
+    deleteLearningInsight: vi.fn(),
+    clearLearningInsights: vi.fn(),
     getOllamaConfig: vi.fn(() => null),
     setOllamaConfig: vi.fn(),
     getAzureFoundryConfig: vi.fn(() => null),
@@ -286,6 +361,13 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 
     // Task summarization
     generateTaskSummary: vi.fn(() => Promise.resolve('Mock task summary')),
+    analyzeTaskForLearning: vi.fn(() => []),
+    buildLearningSystemPromptAppend: actual.buildLearningSystemPromptAppend,
+    buildTaskModeSystemPromptAppend: actual.buildTaskModeSystemPromptAppend,
+    recommendSkillsForTask: actual.recommendSkillsForTask,
+    buildRecommendedSkillsAppend: actual.buildRecommendedSkillsAppend,
+    resolveTaskMemoryContext: actual.resolveTaskMemoryContext,
+    mergeSystemPromptAppend: actual.mergeSystemPromptAppend,
 
     // API validation functions
     validateAnthropicApiKey: vi.fn(() => Promise.resolve({ valid: true })),
@@ -399,6 +481,9 @@ describe('IPC Handlers Integration', () => {
   beforeEach(() => {
     // Reset all mocks and state
     vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     mockedIpcMain._clear();
     mockTasks.length = 0;
     mockApiKeys = {};
@@ -406,6 +491,14 @@ describe('IPC Handlers Integration', () => {
     mockDebugMode = false;
     mockOnboardingComplete = false;
     mockSelectedModel = null;
+    mockOpenAiBaseUrl = '';
+    mockTheme = 'system';
+    mockFileAccessMode = 'limited';
+    mockSelfLearningEnabled = true;
+    mockAutoApplyLearning = true;
+    mockAttachmentPreviewState.pdfText = 'PDF report content';
+    mockAttachmentPreviewState.mammothText = 'Word document content';
+    mockAttachmentPreviewState.imageOcrText = 'Recognized image text';
     mockPendingPermissions.clear();
 
     // Reset task manager mocks
@@ -421,7 +514,7 @@ describe('IPC Handlers Integration', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('registerIPCHandlers', () => {
@@ -453,7 +546,12 @@ describe('IPC Handlers Integration', () => {
       expect(handlers.has('settings:remove-api-key')).toBe(true);
       expect(handlers.has('settings:debug-mode')).toBe(true);
       expect(handlers.has('settings:set-debug-mode')).toBe(true);
+      expect(handlers.has('settings:theme')).toBe(true);
+      expect(handlers.has('settings:set-theme')).toBe(true);
+      expect(handlers.has('settings:file-access-mode')).toBe(true);
+      expect(handlers.has('settings:set-file-access-mode')).toBe(true);
       expect(handlers.has('settings:app-settings')).toBe(true);
+      expect(handlers.has('chat:read-files')).toBe(true);
 
       // API key handlers
       expect(handlers.has('api-key:exists')).toBe(true);
@@ -484,6 +582,164 @@ describe('IPC Handlers Integration', () => {
 
       // Log handler
       expect(handlers.has('log:event')).toBe(true);
+    });
+  });
+
+  describe('Chat Attachments', () => {
+    beforeEach(() => {
+      registerIPCHandlers();
+    });
+
+    it('chat:read-files should decode utf16 text attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-text-'));
+      const filePath = path.join(tempDir, 'summary.txt');
+
+      try {
+        fs.writeFileSync(
+          filePath,
+          Buffer.from(`\ufeffПродажи по регионам\nМосква\t120`, 'utf16le'),
+        );
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('Продажи по регионам');
+        expect(result[0]?.text).toContain('Москва 120');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('chat:read-files should extract spreadsheet preview from xlsx attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-xlsx-'));
+      const filePath = path.join(tempDir, 'sales.xlsx');
+
+      try {
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet([
+          ['Region', 'Sales'],
+          ['Moscow', 123],
+          ['SPB', 456],
+        ]);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Summary');
+        XLSX.writeFile(workbook, filePath);
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[Spreadsheet workbook]');
+        expect(result[0]?.text).toContain('Sheet: Summary');
+        expect(result[0]?.text).toContain('Region | Sales');
+        expect(result[0]?.text).toContain('Moscow | 123');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('chat:read-files should extract PDF text attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-pdf-'));
+      const filePath = path.join(tempDir, 'report.pdf');
+
+      try {
+        mockAttachmentPreviewState.pdfText = 'PDF sales summary for March';
+        fs.writeFileSync(filePath, Buffer.from('%PDF-test'));
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[PDF document]');
+        expect(result[0]?.text).toContain('PDF sales summary for March');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('chat:read-files should extract Word document text attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-docx-'));
+      const filePath = path.join(tempDir, 'report.docx');
+
+      try {
+        mockAttachmentPreviewState.mammothText = 'DOCX sales analysis';
+        fs.writeFileSync(filePath, Buffer.from('docx-test'));
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[Word document]');
+        expect(result[0]?.text).toContain('DOCX sales analysis');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('chat:read-files should extract presentation slide text from pptx attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-pptx-'));
+      const filePath = path.join(tempDir, 'deck.pptx');
+
+      try {
+        const archive = new JSZip();
+        archive.file(
+          'ppt/slides/slide1.xml',
+          '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:t>Q1 Revenue</a:t><a:t>12M</a:t></p:sld>',
+        );
+        archive.file(
+          'ppt/slides/slide2.xml',
+          '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:t>Top region</a:t><a:t>Moscow</a:t></p:sld>',
+        );
+        fs.writeFileSync(filePath, await archive.generateAsync({ type: 'nodebuffer' }));
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[Presentation deck]');
+        expect(result[0]?.text).toContain('Slide 1');
+        expect(result[0]?.text).toContain('Q1 Revenue');
+        expect(result[0]?.text).toContain('Moscow');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('chat:read-files should extract image OCR text attachments', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-image-'));
+      const filePath = path.join(tempDir, 'chart.png');
+
+      try {
+        mockAttachmentPreviewState.imageOcrText = 'Revenue 120 Profit 30';
+        fs.writeFileSync(filePath, Buffer.from('png-test'));
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[Image OCR: chart.png]');
+        expect(result[0]?.text).toContain('Revenue 120 Profit 30');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -598,6 +854,8 @@ describe('IPC Handlers Integration', () => {
       mockOnboardingComplete = true;
       mockSelectedModel = { provider: 'anthropic', model: 'claude-3-opus' };
       mockOpenAiBaseUrl = '';
+      mockTheme = 'dark';
+      mockFileAccessMode = 'full';
 
       // Act
       const result = await invokeHandler('settings:app-settings');
@@ -608,7 +866,32 @@ describe('IPC Handlers Integration', () => {
         onboardingComplete: true,
         selectedModel: { provider: 'anthropic', model: 'claude-3-opus' },
         openaiBaseUrl: '',
+        theme: 'dark',
+        fileAccessMode: 'full',
+        selfLearningEnabled: true,
+        autoApplyLearning: true,
       });
+    });
+
+    it('settings:file-access-mode should return current file access mode', async () => {
+      mockFileAccessMode = 'full';
+
+      const result = await invokeHandler('settings:file-access-mode');
+
+      expect(result).toBe('full');
+    });
+
+    it('settings:set-file-access-mode should update file access mode', async () => {
+      await invokeHandler('settings:set-file-access-mode', 'full');
+
+      const { setFileAccessMode } = await import('@accomplish_ai/agent-core');
+      expect(setFileAccessMode).toHaveBeenCalledWith('full');
+    });
+
+    it('settings:set-file-access-mode should reject invalid values', async () => {
+      await expect(invokeHandler('settings:set-file-access-mode', 'all')).rejects.toThrow(
+        'Invalid file access mode',
+      );
     });
 
     it('settings:api-keys should return list of stored API keys', async () => {
@@ -1334,6 +1617,11 @@ describe('IPC Handlers Integration', () => {
       // Assert
       const { initPermissionApi, startPermissionApiServer } = await import('@main/permission-api');
       expect(initPermissionApi).toHaveBeenCalled();
+      expect(initPermissionApi).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Function),
+        expect.any(Function),
+      );
       expect(startPermissionApiServer).toHaveBeenCalled();
     });
 

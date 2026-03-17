@@ -60,11 +60,7 @@ export default function AttachmentChatInput({ apiBaseUrl, onSent }: Props) {
   return (
     <div className="border-t border-white/10 bg-black/20 p-3">
       {file && (
-        <AttachmentPreview
-          file={file}
-          previewUrl={previewUrl}
-          onRemove={handleRemoveFile}
-        />
+        <AttachmentPreview file={file} previewUrl={previewUrl} onRemove={handleRemoveFile} />
       )}
 
       <div className="flex items-center gap-2">

@@ -77,7 +77,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/пока нет задач/i)).toBeInTheDocument();
     });
 
     it('should render helpful message in empty state', () => {
@@ -89,9 +89,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(
-        screen.getByText(/start by describing what you want to accomplish/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/начните с описания того, что нужно сделать/i)).toBeInTheDocument();
     });
 
     it('should not render task list in empty state', () => {
@@ -116,7 +114,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText(/clear all/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/очистить всё/i)).not.toBeInTheDocument();
     });
   });
 
@@ -152,7 +150,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText('Recent Tasks')).toBeInTheDocument();
+      expect(screen.getByText('Недавние задачи')).toBeInTheDocument();
     });
 
     it('should not render title when showTitle is false', () => {
@@ -167,7 +165,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText('Recent Tasks')).not.toBeInTheDocument();
+      expect(screen.queryByText('Недавние задачи')).not.toBeInTheDocument();
     });
 
     it('should render task status indicator', () => {
@@ -182,7 +180,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert - Status label appears in the meta text
-      const metaText = screen.getByText(/Completed \u00B7/);
+      const metaText = screen.getByText(/Завершено ·/);
       expect(metaText).toBeInTheDocument();
     });
 
@@ -200,7 +198,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/5 messages/i)).toBeInTheDocument();
+      expect(screen.getByText(/Сообщений: 5/i)).toBeInTheDocument();
     });
 
     it('should call loadTasks on mount', () => {
@@ -311,7 +309,7 @@ describe('TaskHistory Integration', () => {
       // Assert - Status label appears in the meta text
       const indicator = document.querySelector('.bg-warning');
       expect(indicator).toBeInTheDocument();
-      const metaText = screen.getByText(/Waiting \u00B7/);
+      const metaText = screen.getByText(/Ожидание ·/);
       expect(metaText).toBeInTheDocument();
     });
   });
@@ -392,7 +390,7 @@ describe('TaskHistory Integration', () => {
       }
 
       // Assert
-      expect(confirmSpy).toHaveBeenCalledWith('Delete this task?');
+      expect(confirmSpy).toHaveBeenCalledWith('Удалить эту задачу?');
     });
 
     it('should call deleteTask when confirmation is accepted', () => {
@@ -475,7 +473,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/clear all/i)).toBeInTheDocument();
+      expect(screen.getByText(/очистить всё/i)).toBeInTheDocument();
     });
 
     it('should not render Clear all button when limit is set', () => {
@@ -490,7 +488,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText(/clear all/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/очистить всё/i)).not.toBeInTheDocument();
     });
 
     it('should show confirmation dialog when Clear all is clicked', () => {
@@ -505,10 +503,10 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>,
       );
 
-      fireEvent.click(screen.getByText(/clear all/i));
+      fireEvent.click(screen.getByText(/очистить всё/i));
 
       // Assert
-      expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to clear all task history?');
+      expect(confirmSpy).toHaveBeenCalledWith('Очистить всю историю задач?');
     });
 
     it('should call clearHistory when confirmation is accepted', () => {
@@ -523,7 +521,7 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>,
       );
 
-      fireEvent.click(screen.getByText(/clear all/i));
+      fireEvent.click(screen.getByText(/очистить всё/i));
 
       // Assert
       expect(mockClearHistory).toHaveBeenCalled();
@@ -541,7 +539,7 @@ describe('TaskHistory Integration', () => {
         </MemoryRouter>,
       );
 
-      fireEvent.click(screen.getByText(/clear all/i));
+      fireEvent.click(screen.getByText(/очистить всё/i));
 
       // Assert
       expect(mockClearHistory).not.toHaveBeenCalled();
@@ -591,7 +589,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/view all 4 tasks/i)).toBeInTheDocument();
+      expect(screen.getByText(/Показать все задачи \(4\)/i)).toBeInTheDocument();
     });
 
     it('should link to history page in View all link', () => {
@@ -610,7 +608,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      const viewAllLink = screen.getByText(/view all/i).closest('a');
+      const viewAllLink = screen.getByText(/Показать все задачи/i).closest('a');
       expect(viewAllLink).toHaveAttribute('href', '/history');
     });
 
@@ -629,7 +627,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText(/view all/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Показать все задачи/i)).not.toBeInTheDocument();
     });
 
     it('should show all tasks when no limit is provided', () => {
@@ -672,7 +670,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/just now/i)).toBeInTheDocument();
+      expect(screen.getByText(/только что/i)).toBeInTheDocument();
     });
 
     it('should show minutes ago for tasks within an hour', () => {
@@ -688,7 +686,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/30m ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/30м назад/i)).toBeInTheDocument();
     });
 
     it('should show hours ago for tasks within a day', () => {
@@ -704,7 +702,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/5h ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/5ч назад/i)).toBeInTheDocument();
     });
 
     it('should show days ago for tasks older than a day', () => {
@@ -720,7 +718,7 @@ describe('TaskHistory Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/3d ago/i)).toBeInTheDocument();
+      expect(screen.getByText(/3д назад/i)).toBeInTheDocument();
     });
   });
 

@@ -63,8 +63,9 @@ const mockAccomplish = {
   saveBedrockCredentials: vi.fn().mockResolvedValue(undefined),
 };
 
-// Mock the accomplish module
-vi.mock('@/lib/accomplish', () => ({
+// Mock the active desktop bridge layer used by the component
+vi.mock('@/lib/rodjerhelp', () => ({
+  getRodjerHelp: () => mockAccomplish,
   getAccomplish: () => mockAccomplish,
 }));
 
@@ -74,15 +75,24 @@ let mockStoreState = {
   loadTasks: mockLoadTasks,
   updateTaskStatus: mockUpdateTaskStatus,
   addTaskUpdate: mockAddTaskUpdate,
+  openLauncher: vi.fn(),
+  deleteTask: vi.fn(),
 };
 
 // Mock the task store
 vi.mock('@/stores/taskStore', () => ({
-  useTaskStore: () => mockStoreState,
+  useTaskStore: (selector?: (state: typeof mockStoreState) => unknown) =>
+    selector ? selector(mockStoreState) : mockStoreState,
 }));
 
 // Mock the SettingsDialog to simplify testing
 vi.mock('@/components/layout/SettingsDialog', () => ({
+  default: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) =>
+    open ? (
+      <div data-testid="settings-dialog">
+        <button onClick={() => onOpenChange(false)}>Close Settings</button>
+      </div>
+    ) : null,
   SettingsDialog: ({
     open,
     onOpenChange,
@@ -130,7 +140,7 @@ vi.mock('framer-motion', () => {
 });
 
 // Need to import after mocks are set up
-import { Sidebar } from '@/components/layout/Sidebar';
+import Sidebar from '@/components/layout/Sidebar';
 
 describe('Sidebar Integration', () => {
   beforeEach(() => {
@@ -141,6 +151,8 @@ describe('Sidebar Integration', () => {
       loadTasks: mockLoadTasks,
       updateTaskStatus: mockUpdateTaskStatus,
       addTaskUpdate: mockAddTaskUpdate,
+      openLauncher: vi.fn(),
+      deleteTask: vi.fn(),
     };
   });
 
@@ -167,7 +179,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const newTaskButton = screen.getByRole('button', { name: /new task/i });
+      const newTaskButton = screen.getByRole('button', { name: /новая задача/i });
       expect(newTaskButton).toBeInTheDocument();
     });
 
@@ -180,7 +192,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      expect(screen.getByText(/no conversations yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/пока нет диалогов/i)).toBeInTheDocument();
     });
 
     it('should render Settings button', () => {
@@ -192,7 +204,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const settingsButton = screen.getByRole('button', { name: /settings/i });
+      const settingsButton = screen.getByRole('button', { name: /настройки/i });
       expect(settingsButton).toBeInTheDocument();
     });
 
@@ -205,7 +217,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const logo = screen.getByRole('img', { name: /accomplish/i });
+      const logo = screen.getByRole('img', { name: /rodjerhelp/i });
       expect(logo).toBeInTheDocument();
     });
 
@@ -255,7 +267,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      expect(screen.queryByText(/no conversations yet/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/пока нет диалогов/i)).not.toBeInTheDocument();
     });
 
     it('should render all tasks in the list', () => {
@@ -312,7 +324,7 @@ describe('Sidebar Integration', () => {
 
       // Assert - Check for green status dot
       const taskItem = screen.getByText('Completed task').closest('[role="button"]');
-      const dot = taskItem?.querySelector('.bg-green-500');
+      const dot = taskItem?.querySelector('.bg-blue-500');
       expect(dot).toBeInTheDocument();
     });
   });
@@ -371,7 +383,7 @@ describe('Sidebar Integration', () => {
 
       // Assert
       const taskItem = screen.getByText('Active task').closest('[role="button"]');
-      expect(taskItem?.className).toContain('bg-[#EDEBE7]');
+      expect(taskItem?.className).toContain('bg-accent');
     });
 
     it('should not highlight inactive conversations', () => {
@@ -408,7 +420,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Act
-      const newTaskButton = screen.getByRole('button', { name: /new task/i });
+      const newTaskButton = screen.getByRole('button', { name: /новая задача/i });
       fireEvent.click(newTaskButton);
 
       // Assert - Button should be clickable (navigation handled by React Router)
@@ -426,7 +438,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert
-      const newTaskButton = screen.getByRole('button', { name: /new task/i });
+      const newTaskButton = screen.getByRole('button', { name: /новая задача/i });
       const icon = newTaskButton.querySelector('svg');
       expect(icon).toBeInTheDocument();
     });
@@ -442,7 +454,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Act
-      const settingsButton = screen.getByRole('button', { name: /settings/i });
+      const settingsButton = screen.getByRole('button', { name: /настройки/i });
       fireEvent.click(settingsButton);
 
       // Assert
@@ -460,7 +472,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Act - Open dialog
-      const settingsButton = screen.getByRole('button', { name: /settings/i });
+      const settingsButton = screen.getByRole('button', { name: /настройки/i });
       fireEvent.click(settingsButton);
 
       await waitFor(() => {

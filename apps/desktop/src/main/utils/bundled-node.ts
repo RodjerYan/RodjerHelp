@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import { type BundledNodePathsExtended } from '@accomplish_ai/agent-core/utils/bundled-node';
 import {
   getBundledNodePaths as coreGetBundledNodePaths,
   isBundledNodeAvailable as coreIsBundledNodeAvailable,
@@ -6,8 +7,7 @@ import {
   getNpmPath as coreGetNpmPath,
   getNpxPath as coreGetNpxPath,
   logBundledNodeInfo as coreLogBundledNodeInfo,
-  type BundledNodePathsExtended,
-} from '@accomplish_ai/agent-core';
+} from '@accomplish_ai/agent-core/utils/bundled-node';
 import type { PlatformConfig } from '@accomplish_ai/agent-core';
 
 export type { BundledNodePathsExtended as BundledNodePaths };

@@ -1,12 +1,41 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import type { ProviderType, Skill, TodoItem, McpConnector } from '@accomplish_ai/agent-core';
+import type {
+  ProviderType,
+  Skill,
+  TodoItem,
+  McpConnector,
+  LearningInsight,
+  LearningSettings,
+  TaskPersonaMode,
+} from '@accomplish_ai/agent-core';
 
 /**
  * Exposes a limited API to the renderer process.
  * All privileged operations are routed to the Electron main process via IPC.
  */
-let __pickedChatFilesCache: any[] = [];
+type PickedChatFileInfo = { path: string; name: string; size: number; lastModified: number };
+type PickedChatFile = string | PickedChatFileInfo;
 
+let __pickedChatFilesCache: PickedChatFile[] = [];
+
+const isPickedChatFileInfo = (value: unknown): value is PickedChatFileInfo => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const maybeFile = value as Partial<PickedChatFileInfo>;
+  return (
+    typeof maybeFile.path === 'string' &&
+    typeof maybeFile.name === 'string' &&
+    typeof maybeFile.size === 'number' &&
+    typeof maybeFile.lastModified === 'number'
+  );
+};
+
+const getPickedChatFilePaths = (): string[] =>
+  __pickedChatFilesCache
+    .map((file) => (typeof file === 'string' ? file : file.path))
+    .filter(Boolean);
 
 // Expose the accomplish API to the renderer
 const accomplishAPI = {
@@ -34,13 +63,23 @@ const accomplishAPI = {
     ipcRenderer.invoke('permission:respond', response),
 
   // Session management
-  resumeSession: (sessionId: string, prompt: string, taskId?: string): Promise<unknown> =>
-    ipcRenderer.invoke('session:resume', sessionId, prompt, taskId),
-
+  resumeSession: (
+    sessionId: string,
+    prompt: string,
+    taskId?: string,
+    options?: { taskMode?: TaskPersonaMode; memoryContext?: string },
+  ): Promise<unknown> => ipcRenderer.invoke('session:resume', sessionId, prompt, taskId, options),
 
   // Updates
   getUpdateStatus: (): Promise<{
-    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    status:
+      | 'idle'
+      | 'checking'
+      | 'available'
+      | 'downloading'
+      | 'downloaded'
+      | 'not-available'
+      | 'error';
     version?: string;
     progress?: number;
     transferred?: number;
@@ -48,7 +87,14 @@ const accomplishAPI = {
     message?: string;
   }> => ipcRenderer.invoke('update:get-status'),
   checkForUpdates: (): Promise<{
-    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    status:
+      | 'idle'
+      | 'checking'
+      | 'available'
+      | 'downloading'
+      | 'downloaded'
+      | 'not-available'
+      | 'error';
     version?: string;
     progress?: number;
     transferred?: number;
@@ -56,22 +102,41 @@ const accomplishAPI = {
     message?: string;
   }> => ipcRenderer.invoke('update:check'),
   installDownloadedUpdate: (): Promise<boolean> => ipcRenderer.invoke('update:install'),
-  onUpdateStatus: (callback: (data: {
-    status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
-    version?: string;
-    progress?: number;
-    transferred?: number;
-    total?: number;
-    message?: string;
-  }) => void) => {
-    const listener = (_: unknown, data: {
-      status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+  onUpdateStatus: (
+    callback: (data: {
+      status:
+        | 'idle'
+        | 'checking'
+        | 'available'
+        | 'downloading'
+        | 'downloaded'
+        | 'not-available'
+        | 'error';
       version?: string;
       progress?: number;
       transferred?: number;
       total?: number;
       message?: string;
-    }) => callback(data);
+    }) => void,
+  ) => {
+    const listener = (
+      _: unknown,
+      data: {
+        status:
+          | 'idle'
+          | 'checking'
+          | 'available'
+          | 'downloading'
+          | 'downloaded'
+          | 'not-available'
+          | 'error';
+        version?: string;
+        progress?: number;
+        transferred?: number;
+        total?: number;
+        message?: string;
+      },
+    ) => callback(data);
     ipcRenderer.on('update:status', listener);
     return () => ipcRenderer.removeListener('update:status', listener);
   },
@@ -86,13 +151,36 @@ const accomplishAPI = {
     ipcRenderer.invoke('settings:set-debug-mode', enabled),
   getTheme: (): Promise<string> => ipcRenderer.invoke('settings:theme'),
   setTheme: (theme: string): Promise<void> => ipcRenderer.invoke('settings:set-theme', theme),
+  getFileAccessMode: (): Promise<'limited' | 'full'> =>
+    ipcRenderer.invoke('settings:file-access-mode'),
+  setFileAccessMode: (mode: 'limited' | 'full'): Promise<void> =>
+    ipcRenderer.invoke('settings:set-file-access-mode', mode),
+  getLearningSettings: (): Promise<LearningSettings> => ipcRenderer.invoke('settings:learning'),
+  setSelfLearningEnabled: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-self-learning', enabled),
+  setAutoApplyLearning: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-auto-apply-learning', enabled),
+  getLearningInsights: (): Promise<LearningInsight[]> =>
+    ipcRenderer.invoke('learning:list-insights'),
+  deleteLearningInsight: (insightId: string): Promise<void> =>
+    ipcRenderer.invoke('learning:delete-insight', insightId),
+  clearLearningInsights: (): Promise<void> => ipcRenderer.invoke('learning:clear-insights'),
   onThemeChange: (callback: (data: { theme: string; resolved: string }) => void) => {
     const listener = (_: unknown, data: { theme: string; resolved: string }) => callback(data);
     ipcRenderer.on('settings:theme-changed', listener);
     return () => ipcRenderer.removeListener('settings:theme-changed', listener);
   },
-  getAppSettings: (): Promise<{ debugMode: boolean; onboardingComplete: boolean; theme: string }> =>
-    ipcRenderer.invoke('settings:app-settings'),
+  onFileAccessModeChange: (callback: (data: { mode: 'limited' | 'full' }) => void) => {
+    const listener = (_: unknown, data: { mode: 'limited' | 'full' }) => callback(data);
+    ipcRenderer.on('settings:file-access-mode-changed', listener);
+    return () => ipcRenderer.removeListener('settings:file-access-mode-changed', listener);
+  },
+  getAppSettings: (): Promise<{
+    debugMode: boolean;
+    onboardingComplete: boolean;
+    theme: string;
+    fileAccessMode: 'limited' | 'full';
+  }> => ipcRenderer.invoke('settings:app-settings'),
   getOpenAiBaseUrl: (): Promise<string> => ipcRenderer.invoke('settings:openai-base-url:get'),
   setOpenAiBaseUrl: (baseUrl: string): Promise<void> =>
     ipcRenderer.invoke('settings:openai-base-url:set', baseUrl),
@@ -478,34 +566,36 @@ const accomplishAPI = {
   getUserSkillsPath: (): Promise<string> => ipcRenderer.invoke('skills:get-user-skills-path'),
   pickSkillFile: (): Promise<string | null> => ipcRenderer.invoke('skills:pick-file'),
   // Chat attachments
-  pickChatFiles: async (): Promise<Array<{ path: string; name: string; size: number; lastModified: number }>> => {
+  pickChatFiles: async (): Promise<PickedChatFileInfo[]> => {
     const res = await ipcRenderer.invoke('chat:pick-files');
-    __pickedChatFilesCache = Array.isArray(res) ? res : [];
-    return __pickedChatFilesCache;
+    const pickedFiles = Array.isArray(res) ? res.filter(isPickedChatFileInfo) : [];
+    __pickedChatFilesCache = pickedFiles;
+    return pickedFiles;
   },
-  getLastPickedChatFiles: async (): Promise<string[]> =>
-    __pickedChatFilesCache
-      .map((f: any) => (typeof f === 'string' ? f : f?.path || ''))
-      .filter(Boolean),
-  setLastPickedChatFiles: async (files: Array<{ path: string; name: string; size: number; lastModified: number }> | string[]) => {
+  getLastPickedChatFiles: async (): Promise<string[]> => getPickedChatFilePaths(),
+  setLastPickedChatFiles: async (files: PickedChatFileInfo[] | string[]) => {
     __pickedChatFilesCache = Array.isArray(files) ? files : [];
   },
   clearLastPickedChatFiles: async () => {
     __pickedChatFilesCache = [];
   },
-  readChatFiles: (paths: string[]): Promise<Array<{
-    path: string;
-    name: string;
-    size: number;
-    truncated?: boolean;
-    text?: string;
-    error?: string;
-  }>> => ipcRenderer.invoke('chat:read-files', paths),
-  resolveDroppedChatFiles: async (files: File[]): Promise<Array<{ path: string; name: string; size: number; lastModified: number }>> => {
+  readChatFiles: (
+    paths: string[],
+  ): Promise<
+    Array<{
+      path: string;
+      name: string;
+      size: number;
+      truncated?: boolean;
+      text?: string;
+      error?: string;
+    }>
+  > => ipcRenderer.invoke('chat:read-files', paths),
+  resolveDroppedChatFiles: async (files: File[]): Promise<PickedChatFileInfo[]> => {
     if (!Array.isArray(files) || files.length === 0) return [];
 
     const seen = new Set<string>();
-    const resolved: Array<{ path: string; name: string; size: number; lastModified: number }> = [];
+    const resolved: PickedChatFileInfo[] = [];
 
     for (const file of files) {
       try {
@@ -577,11 +667,8 @@ export type RodjerHelpAPI = typeof accomplishAPI;
 
 // rodjerhelpExtras bridge (attachments)
 contextBridge.exposeInMainWorld('rodjerhelpExtras', {
-  getLastPickedChatFiles: async () =>
-    __pickedChatFilesCache
-      .map((f: any) => (typeof f === 'string' ? f : f?.path || ''))
-      .filter(Boolean),
-  setLastPickedChatFiles: async (files: Array<{ path: string; name: string; size: number; lastModified: number }> | string[]) => {
+  getLastPickedChatFiles: async () => getPickedChatFilePaths(),
+  setLastPickedChatFiles: async (files: PickedChatFileInfo[] | string[]) => {
     __pickedChatFilesCache = Array.isArray(files) ? files : [];
   },
   clearLastPickedChatFiles: async () => {

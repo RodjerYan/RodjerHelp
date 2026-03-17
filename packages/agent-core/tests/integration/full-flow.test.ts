@@ -26,23 +26,25 @@ describe('Core Package Integration', () => {
   let databaseModule: typeof import('../../src/storage/database.js') | null = null;
   let secureStorageModule: typeof import('../../src/storage/secure-storage.js') | null = null;
   let migrationsModule: typeof import('../../src/storage/migrations/index.js') | null = null;
-  let skillsModule: typeof import('../../src/skills/skills-manager.js') | null = null;
+  let skillsModule: typeof import('../../src/internal/classes/SkillsManager.js') | null = null;
   let pathsModule: typeof import('../../src/utils/paths.js') | null = null;
   let moduleAvailable = false;
 
   beforeAll(async () => {
     try {
-      // Load all modules that depend on better-sqlite3
-      databaseModule = await import('../../src/storage/database.js');
-      secureStorageModule = await import('../../src/storage/secure-storage.js');
-      migrationsModule = await import('../../src/storage/migrations/index.js');
-      skillsModule = await import('../../src/skills/skills-manager.js');
-      pathsModule = await import('../../src/utils/paths.js');
-      moduleAvailable = true;
-    } catch (_err) {
+      await import('better-sqlite3');
+    } catch {
       console.warn('Skipping integration tests: better-sqlite3 native module not available');
       console.warn('To fix: pnpm rebuild better-sqlite3');
+      return;
     }
+
+    databaseModule = await import('../../src/storage/database.js');
+    secureStorageModule = await import('../../src/storage/secure-storage.js');
+    migrationsModule = await import('../../src/storage/migrations/index.js');
+    skillsModule = await import('../../src/internal/classes/SkillsManager.js');
+    pathsModule = await import('../../src/utils/paths.js');
+    moduleAvailable = true;
   });
 
   beforeEach(() => {

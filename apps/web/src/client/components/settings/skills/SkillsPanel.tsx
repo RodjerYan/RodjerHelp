@@ -142,7 +142,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.openSkillInEditor(filePath);
     } catch (err) {
-        console.error('Не удалось открыть навык в редакторе:', err);
+      console.error('Не удалось открыть навык в редакторе:', err);
     }
   }, []);
 
@@ -151,7 +151,7 @@ export function SkillsPanel({ refreshTrigger }: SkillsPanelProps) {
     try {
       await window.accomplish.showSkillInFolder(filePath);
     } catch (err) {
-        console.error('Не удалось показать навык в папке:', err);
+      console.error('Не удалось показать навык в папке:', err);
     }
   }, []);
 
