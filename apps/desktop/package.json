@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "private": true,
   "type": "module",
   "description": "RodjerHelp Desktop App",
@@ -21,11 +21,12 @@
     "build:unpack": "pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --dir",
     "package": "pnpm clean && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
     "package:mac": "pnpm clean && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --mac --publish never && npx electron-rebuild -f",
-    "package:win": "pnpm clean && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish never",
+    "package:win": "pnpm clean:build && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish never --config.directories.output=release-package",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "clean": "node -e \"const fs=require('fs');['dist','dist-electron','release'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
+    "clean": "node -e \"const fs=require('fs');for (const d of ['dist','dist-electron','release']) { try { fs.rmSync(d,{recursive:true,force:true,maxRetries:5,retryDelay:250}); } catch (error) { if (d !== 'release') throw error; console.warn('[clean] skipping locked directory:', d, error && error.code ? error.code : error); } }\"",
+    "clean:build": "node -e \"const fs=require('fs');for (const d of ['dist','dist-electron']) { fs.rmSync(d,{recursive:true,force:true,maxRetries:5,retryDelay:250}); }\"",
     "download:nodejs": "node scripts/download-nodejs.cjs",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
@@ -43,7 +44,7 @@
     "test:e2e:native:integration": "playwright test --config=e2e/playwright.config.ts --project=electron-integration",
     "test:e2e:providers": "playwright test --config=e2e/playwright.config.ts --project=provider-e2e",
     "test:local-agent": "npx tsx scripts/test-local-agent-cli.ts",
-    "package:win:publish": "pnpm clean && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish always"
+    "package:win:publish": "pnpm clean:build && pnpm download:nodejs && pnpm build:base && pnpm build:mcp-tools:package && node scripts/package.cjs --win --x64 --publish always --config.directories.output=release-package"
   },
   "dependencies": {
     "@accomplish_ai/agent-core": "workspace:*",

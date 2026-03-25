@@ -8,6 +8,7 @@ import type { ProviderId } from '@accomplish_ai/agent-core/common';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
+import { VpnStatusIndicator } from './components/layout/VpnStatusIndicator';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import SettingsDialog from './components/layout/SettingsDialog';
@@ -146,6 +147,9 @@ export function App() {
       <div className="drag-region fixed top-0 left-0 right-0 h-10 z-50 pointer-events-none" />
       <Sidebar />
       <main className="relative flex-1 overflow-hidden">
+        <div className="pointer-events-none absolute top-3 right-4 z-40">
+          <VpnStatusIndicator />
+        </div>
         <AnimatedOutletWrapper />
       </main>
       <TaskLauncher />

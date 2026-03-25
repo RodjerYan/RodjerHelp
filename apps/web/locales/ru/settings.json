@@ -236,6 +236,7 @@
   },
   "tabs": {
     "providers": "Провайдеры",
+    "vpn": "VPN",
     "intelligence": "Интеллект",
     "connectors": "Коннекторы",
     "skills": "Навыки",
@@ -266,6 +267,71 @@
       "quality": "Качество",
       "safety": "Безопасность",
       "domain": "Доменный контекст"
+    }
+  },
+  "vpn": {
+    "title": "Встроенный Amnezia VPN",
+    "description": "RodjerHelp может хранить ваш AWG/WireGuard-профиль локально, поднимать туннель перед задачами и работать только через него.",
+    "enabled": "Включить встроенный VPN",
+    "enabledDescription": "Если включено, приложение будет учитывать VPN-настройки перед запуском сетевых задач.",
+    "autoConnect": "Автоподключение перед задачами",
+    "autoConnectDescription": "Перед `start/resume` RodjerHelp сам поднимет туннель через установленный AmneziaVPN service.",
+    "requireTunnel": "Требовать туннель для задач",
+    "requireTunnelDescription": "Если туннель не поднялся, задача не стартует и сетевой запрос не уйдёт наружу.",
+    "killSwitch": "Kill switch",
+    "killSwitchDescription": "Передаёт в Amnezia режим жёсткого ограничения сетевого трафика для этого профиля.",
+    "importProfile": "Загрузить .conf",
+    "saveProfile": "Сохранить профиль",
+    "deleteProfile": "Удалить профиль",
+    "connect": "Подключить",
+    "disconnect": "Отключить",
+    "profile": "Профиль",
+    "profileDescription": "Можно импортировать `.conf` с диска или вставить/изменить сырой конфиг прямо здесь.",
+    "profileName": "Название профиля",
+    "profileNamePlaceholder": "Например: Limkorm Secure Tunnel",
+    "rawConfig": "Сырой конфиг",
+    "rawConfigPlaceholder": "[Interface]\nPrivateKey = ...\nAddress = ...\nDNS = ...\n\n[Peer]\nPublicKey = ...\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = host:port",
+    "messages": {
+      "imported": "Конфиг импортирован в защищённое хранилище.",
+      "saved": "VPN-профиль сохранён.",
+      "deleted": "VPN-профиль удалён.",
+      "connected": "Туннель успешно поднят.",
+      "disconnected": "Туннель отключён."
+    },
+    "errors": {
+      "updateFailed": "Не удалось обновить VPN-настройки.",
+      "importFailed": "Не удалось импортировать конфиг.",
+      "saveFailed": "Не удалось сохранить профиль.",
+      "deleteFailed": "Не удалось удалить профиль.",
+      "connectFailed": "Не удалось поднять VPN-туннель.",
+      "disconnectFailed": "Не удалось отключить VPN-туннель."
+    },
+    "states": {
+      "unsupported": "Недоступно",
+      "disconnected": "Отключён",
+      "connecting": "Подключение…",
+      "connected": "Подключён",
+      "disconnecting": "Отключение…",
+      "error": "Ошибка"
+    },
+    "status": {
+      "clientInstalled": "AmneziaVPN установлен: {{value}}",
+      "serviceAvailable": "Сервис доступен: {{value}}",
+      "hasProfile": "Профиль загружен: {{value}}",
+      "endpoint": "Endpoint: {{value}}"
+    },
+    "summary": {
+      "protocol": "Протокол: {{value}}",
+      "endpoint": "Endpoint: {{value}}",
+      "addresses": "Адресов в профиле: {{value}}",
+      "dns": "DNS-серверов: {{value}}",
+      "allowedIps": "AllowedIPs записей: {{value}}",
+      "sourcePath": "Источник: {{value}}"
+    },
+    "common": {
+      "yes": "да",
+      "no": "нет",
+      "notSet": "не задано"
     }
   },
   "appearance": {

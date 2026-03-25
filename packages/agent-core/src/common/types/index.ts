@@ -99,6 +99,15 @@ export type {
   McpConnector,
 } from './connector.js';
 
+export type {
+  VpnProtocol,
+  VpnConnectionState,
+  VpnProfile,
+  VpnSettings,
+  VpnProfileSnapshot,
+  VpnStatus,
+} from './vpn.js';
+
 export { STARTUP_STAGES } from './task.js';
 export type {
   TaskStatus,

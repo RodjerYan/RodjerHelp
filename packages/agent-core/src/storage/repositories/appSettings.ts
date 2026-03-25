@@ -6,6 +6,7 @@ import type {
   LMStudioConfig,
 } from '../../common/types/provider.js';
 import type { LearningSettings } from '../../common/types/learning.js';
+import type { VpnSettings } from '../../common/types/vpn.js';
 import type { FileAccessMode, ThemePreference } from '../../types/storage.js';
 import { getDatabase } from '../database.js';
 import { safeParseJsonWithFallback } from '../../utils/json.js';
@@ -24,6 +25,10 @@ interface AppSettingsRow {
   file_access_mode: string;
   self_learning_enabled: number;
   auto_apply_learning: number;
+  vpn_enabled: number;
+  vpn_auto_connect: number;
+  vpn_require_tunnel: number;
+  vpn_kill_switch: number;
 }
 
 export interface AppSettings {
@@ -160,6 +165,36 @@ export function setOpenAiBaseUrl(baseUrl: string): void {
 const VALID_THEMES: ThemePreference[] = ['system', 'light', 'dark'];
 const VALID_FILE_ACCESS_MODES: FileAccessMode[] = ['limited', 'full'];
 
+export function getVpnSettings(): VpnSettings {
+  const row = getRow();
+  return {
+    enabled: row.vpn_enabled === 1,
+    autoConnect: row.vpn_auto_connect === 1,
+    requireTunnel: row.vpn_require_tunnel === 1,
+    killSwitch: row.vpn_kill_switch === 1,
+  };
+}
+
+export function setVpnEnabled(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET vpn_enabled = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+export function setVpnAutoConnect(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET vpn_auto_connect = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+export function setVpnRequireTunnel(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET vpn_require_tunnel = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
+export function setVpnKillSwitch(enabled: boolean): void {
+  const db = getDatabase();
+  db.prepare('UPDATE app_settings SET vpn_kill_switch = ? WHERE id = 1').run(enabled ? 1 : 0);
+}
+
 export function getTheme(): ThemePreference {
   const row = getRow();
   const value = row.theme as ThemePreference;
@@ -257,7 +292,11 @@ export function clearAppSettings(): void {
       theme = 'system',
       file_access_mode = 'limited',
       self_learning_enabled = 1,
-      auto_apply_learning = 1
+      auto_apply_learning = 1,
+      vpn_enabled = 0,
+      vpn_auto_connect = 0,
+      vpn_require_tunnel = 0,
+      vpn_kill_switch = 0
     WHERE id = 1`,
   ).run();
 }

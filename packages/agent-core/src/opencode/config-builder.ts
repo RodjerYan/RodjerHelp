@@ -537,15 +537,14 @@ export async function buildProviderConfigs(
   return { providerConfigs, enabledProviders, modelOverride };
 }
 
-/**
- * API key mapping from internal provider IDs to OpenCode auth.json format.
- * Only providers that need special key mapping in auth.json are included here.
- */
-const _AUTH_KEY_MAPPING: Record<string, string> = {
-  deepseek: 'deepseek',
-  zai: 'zai-coding-plan',
-  minimax: 'minimax',
-};
+interface OpenCodeAuthEntry {
+  type?: string;
+  key?: string;
+  refresh?: string;
+  access?: string;
+  expires?: number;
+  [key: string]: unknown;
+}
 
 /**
  * Syncs API keys to OpenCode auth.json file.
@@ -566,7 +565,7 @@ export async function syncApiKeysToOpenCodeAuth(
     fs.mkdirSync(authDir, { recursive: true });
   }
 
-  let auth: Record<string, { type: string; key: string }> = {};
+  let auth: Record<string, OpenCodeAuthEntry> = {};
   if (fs.existsSync(authPath)) {
     try {
       auth = JSON.parse(fs.readFileSync(authPath, 'utf-8'));
@@ -578,16 +577,28 @@ export async function syncApiKeysToOpenCodeAuth(
 
   let updated = false;
 
+  if (apiKeys.openai) {
+    if (auth.openai?.type !== 'api' || auth.openai.key !== apiKeys.openai) {
+      auth.openai = { type: 'api', key: apiKeys.openai };
+      updated = true;
+      console.log('[OpenCode Auth] Synced OpenAI API key');
+    }
+  }
+
   if (apiKeys.deepseek) {
-    if (!auth['deepseek'] || auth['deepseek'].key !== apiKeys.deepseek) {
-      auth['deepseek'] = { type: 'api', key: apiKeys.deepseek };
+    if (!auth.deepseek || auth.deepseek.key !== apiKeys.deepseek || auth.deepseek.type !== 'api') {
+      auth.deepseek = { type: 'api', key: apiKeys.deepseek };
       updated = true;
       console.log('[OpenCode Auth] Synced DeepSeek API key');
     }
   }
 
   if (apiKeys.zai) {
-    if (!auth['zai-coding-plan'] || auth['zai-coding-plan'].key !== apiKeys.zai) {
+    if (
+      !auth['zai-coding-plan'] ||
+      auth['zai-coding-plan'].key !== apiKeys.zai ||
+      auth['zai-coding-plan'].type !== 'api'
+    ) {
       auth['zai-coding-plan'] = { type: 'api', key: apiKeys.zai };
       updated = true;
       console.log('[OpenCode Auth] Synced Z.AI Coding Plan API key');

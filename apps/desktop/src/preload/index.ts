@@ -7,6 +7,9 @@ import type {
   LearningInsight,
   LearningSettings,
   TaskPersonaMode,
+  VpnProfileSnapshot,
+  VpnSettings,
+  VpnStatus,
 } from '@accomplish_ai/agent-core';
 
 /**
@@ -156,6 +159,15 @@ const accomplishAPI = {
   setFileAccessMode: (mode: 'limited' | 'full'): Promise<void> =>
     ipcRenderer.invoke('settings:set-file-access-mode', mode),
   getLearningSettings: (): Promise<LearningSettings> => ipcRenderer.invoke('settings:learning'),
+  getVpnSettings: (): Promise<VpnSettings> => ipcRenderer.invoke('settings:vpn'),
+  setVpnEnabled: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-vpn-enabled', enabled),
+  setVpnAutoConnect: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-vpn-auto-connect', enabled),
+  setVpnRequireTunnel: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-vpn-require-tunnel', enabled),
+  setVpnKillSwitch: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('settings:set-vpn-kill-switch', enabled),
   setSelfLearningEnabled: (enabled: boolean): Promise<void> =>
     ipcRenderer.invoke('settings:set-self-learning', enabled),
   setAutoApplyLearning: (enabled: boolean): Promise<void> =>
@@ -165,6 +177,15 @@ const accomplishAPI = {
   deleteLearningInsight: (insightId: string): Promise<void> =>
     ipcRenderer.invoke('learning:delete-insight', insightId),
   clearLearningInsights: (): Promise<void> => ipcRenderer.invoke('learning:clear-insights'),
+  getVpnProfile: (): Promise<VpnProfileSnapshot> => ipcRenderer.invoke('vpn:get-profile'),
+  saveVpnProfile: (payload: { rawConfig: string; name?: string }): Promise<VpnProfileSnapshot> =>
+    ipcRenderer.invoke('vpn:save-profile', payload),
+  deleteVpnProfile: (): Promise<boolean> => ipcRenderer.invoke('vpn:delete-profile'),
+  importVpnProfile: (): Promise<VpnProfileSnapshot | null> =>
+    ipcRenderer.invoke('vpn:import-profile'),
+  getVpnStatus: (): Promise<VpnStatus> => ipcRenderer.invoke('vpn:get-status'),
+  connectVpn: (): Promise<VpnStatus> => ipcRenderer.invoke('vpn:connect'),
+  disconnectVpn: (): Promise<VpnStatus> => ipcRenderer.invoke('vpn:disconnect'),
   onThemeChange: (callback: (data: { theme: string; resolved: string }) => void) => {
     const listener = (_: unknown, data: { theme: string; resolved: string }) => callback(data);
     ipcRenderer.on('settings:theme-changed', listener);

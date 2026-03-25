@@ -102,6 +102,15 @@ import {
 import { normalizeIpcError, permissionResponseSchema, validate } from './validation';
 import { createTaskCallbacks } from './task-callbacks';
 import {
+  connectVpn,
+  deleteStoredVpnProfile,
+  disconnectVpn,
+  ensureVpnReadyForTasks,
+  getStoredVpnProfileSnapshot,
+  getVpnStatus,
+  saveVpnProfileFromRawConfig,
+} from '../vpn/amnezia';
+import {
   isMockTaskEventsEnabled,
   createMockTask,
   executeMockTaskFlow,
@@ -165,9 +174,7 @@ function stringifySpreadsheetCell(value: unknown): string {
 }
 
 function buildSpreadsheetPreview(filePath: string): string {
-  const workbookBuffer = fs.readFileSync(filePath);
-  const workbook = XLSX.read(workbookBuffer, {
-    type: 'buffer',
+  const workbook = XLSX.readFile(filePath, {
     cellDates: true,
     dense: true,
   });
@@ -678,6 +685,10 @@ export function registerIPCHandlers(): void {
       );
     }
 
+    if (!isMockTaskEventsEnabled()) {
+      await ensureVpnReadyForTasks(storage);
+    }
+
     if (!permissionApiInitialized) {
       initPermissionApi(
         window,
@@ -855,6 +866,10 @@ export function registerIPCHandlers(): void {
         throw new Error(
           'No provider is ready. Please connect a provider and select a model in Settings.',
         );
+      }
+
+      if (!isMockTaskEventsEnabled()) {
+        await ensureVpnReadyForTasks(storage);
       }
 
       const taskId = validatedExistingTaskId || createTaskId();
@@ -1561,6 +1576,92 @@ export function registerIPCHandlers(): void {
 
   handle('learning:clear-insights', async (_event: IpcMainInvokeEvent) => {
     storage.clearLearningInsights();
+  });
+
+  handle('settings:vpn', async (_event: IpcMainInvokeEvent) => {
+    return storage.getVpnSettings();
+  });
+
+  handle('settings:set-vpn-enabled', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid VPN enabled flag');
+    }
+    storage.setVpnEnabled(enabled);
+  });
+
+  handle('settings:set-vpn-auto-connect', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid VPN auto-connect flag');
+    }
+    storage.setVpnAutoConnect(enabled);
+  });
+
+  handle(
+    'settings:set-vpn-require-tunnel',
+    async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+      if (typeof enabled !== 'boolean') {
+        throw new Error('Invalid VPN require-tunnel flag');
+      }
+      storage.setVpnRequireTunnel(enabled);
+    },
+  );
+
+  handle('settings:set-vpn-kill-switch', async (_event: IpcMainInvokeEvent, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid VPN kill-switch flag');
+    }
+    storage.setVpnKillSwitch(enabled);
+  });
+
+  handle('vpn:get-profile', async (_event: IpcMainInvokeEvent) => {
+    return getStoredVpnProfileSnapshot(storage);
+  });
+
+  handle(
+    'vpn:save-profile',
+    async (_event: IpcMainInvokeEvent, payload: { rawConfig: string; name?: string }) => {
+      if (!payload || typeof payload.rawConfig !== 'string') {
+        throw new Error('Invalid VPN profile payload');
+      }
+
+      return saveVpnProfileFromRawConfig(storage, payload.rawConfig, { name: payload.name });
+    },
+  );
+
+  handle('vpn:delete-profile', async (_event: IpcMainInvokeEvent) => {
+    return deleteStoredVpnProfile(storage);
+  });
+
+  handle('vpn:import-profile', async (_event: IpcMainInvokeEvent) => {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Выберите конфиг Amnezia/WireGuard',
+      filters: [
+        { name: 'Конфиги VPN', extensions: ['conf', 'txt'] },
+        { name: 'Все файлы', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+
+    const sourcePath = result.filePaths[0];
+    const rawConfig = fs.readFileSync(sourcePath, 'utf-8');
+    return saveVpnProfileFromRawConfig(storage, rawConfig, { sourcePath });
+  });
+
+  handle('vpn:get-status', async (_event: IpcMainInvokeEvent) => {
+    return getVpnStatus(storage);
+  });
+
+  handle('vpn:connect', async (_event: IpcMainInvokeEvent) => {
+    return connectVpn(storage);
+  });
+
+  handle('vpn:disconnect', async (_event: IpcMainInvokeEvent) => {
+    return disconnectVpn(storage);
   });
 
   handle('settings:app-settings', async (_event: IpcMainInvokeEvent) => {

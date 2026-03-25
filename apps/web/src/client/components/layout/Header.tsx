@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { VpnStatusIndicator } from './VpnStatusIndicator';
 
 export default function Header() {
   const location = useLocation();
@@ -43,8 +44,9 @@ export default function Header() {
           </NavLink>
         </nav>
 
-        {/* Spacer for balance */}
-        <div className="w-24" />
+        <div className="flex w-40 justify-end">
+          <VpnStatusIndicator />
+        </div>
       </div>
     </header>
   );

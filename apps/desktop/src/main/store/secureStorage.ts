@@ -1,4 +1,5 @@
 import type { ApiKeyProvider } from '@accomplish_ai/agent-core';
+import type { VpnProfile, VpnProfileSnapshot } from '@accomplish_ai/agent-core';
 import { getStorage } from './storage';
 
 export type { ApiKeyProvider };
@@ -33,4 +34,16 @@ export async function hasAnyApiKey(): Promise<boolean> {
 
 export function clearSecureStorage(): void {
   getStorage().clearSecureStorage();
+}
+
+export function storeVpnProfile(profile: VpnProfile): void {
+  getStorage().storeVpnProfile(profile);
+}
+
+export function getVpnProfile(): VpnProfileSnapshot {
+  return getStorage().getVpnProfile();
+}
+
+export function deleteVpnProfile(): boolean {
+  return getStorage().deleteVpnProfile();
 }

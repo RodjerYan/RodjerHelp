@@ -118,6 +118,15 @@ export {
 
 export type { BrowserConfig } from './opencode/config-generator.js';
 
+export type {
+  VpnProtocol,
+  VpnConnectionState,
+  VpnProfile,
+  VpnSettings,
+  VpnProfileSnapshot,
+  VpnStatus,
+} from './common/index.js';
+
 export { buildOpenCodeEnvironment } from './opencode/environment.js';
 
 export type { EnvironmentConfig } from './opencode/environment.js';

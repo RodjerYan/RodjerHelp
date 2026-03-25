@@ -95,6 +95,11 @@
     "limitedDescription": "Приложение спрашивает разрешение перед изменением файлов.",
     "fullDescription": "Изменения файлов выполняются без дополнительных подтверждений."
   },
+  "vpnStatus": {
+    "title": "VPN",
+    "notConfigured": "Не настроен",
+    "unavailable": "Недоступен"
+  },
   "taskMode": {
     "title": "Режим задачи",
     "options": {

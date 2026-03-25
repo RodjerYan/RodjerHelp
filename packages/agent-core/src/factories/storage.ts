@@ -44,6 +44,11 @@ import {
   getAutoApplyLearning,
   setAutoApplyLearning,
   getLearningSettings,
+  getVpnSettings,
+  setVpnEnabled,
+  setVpnAutoConnect,
+  setVpnRequireTunnel,
+  setVpnKillSwitch,
   getAppSettings,
   clearAppSettings,
 } from '../storage/repositories/appSettings.js';
@@ -80,6 +85,7 @@ import {
 } from '../storage/repositories/connectors.js';
 import { SecureStorage } from '../internal/classes/SecureStorage.js';
 import type { OAuthTokens } from '../common/types/connector.js';
+import type { VpnProfile, VpnProfileSnapshot } from '../common/types/vpn.js';
 import type { StorageAPI, StorageOptions } from '../types/storage.js';
 
 export function createStorage(options: StorageOptions = {}): StorageAPI {
@@ -142,6 +148,11 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getAutoApplyLearning: () => getAutoApplyLearning(),
     setAutoApplyLearning: (enabled) => setAutoApplyLearning(enabled),
     getLearningSettings: () => getLearningSettings(),
+    getVpnSettings: () => getVpnSettings(),
+    setVpnEnabled: (enabled) => setVpnEnabled(enabled),
+    setVpnAutoConnect: (enabled) => setVpnAutoConnect(enabled),
+    setVpnRequireTunnel: (enabled) => setVpnRequireTunnel(enabled),
+    setVpnKillSwitch: (enabled) => setVpnKillSwitch(enabled),
     getAppSettings: () => getAppSettings(),
     clearAppSettings: () => clearAppSettings(),
 
@@ -198,6 +209,21 @@ export function createStorage(options: StorageOptions = {}): StorageAPI {
     getBedrockCredentials: () => secureStorage.getBedrockCredentials(),
     hasAnyApiKey: () => secureStorage.hasAnyApiKey(),
     listStoredCredentials: () => secureStorage.listStoredCredentials(),
+    storeVpnProfile: (profile: VpnProfile) =>
+      secureStorage.set('vpn:profile', JSON.stringify(profile)),
+    getVpnProfile: (): VpnProfileSnapshot => {
+      const stored = secureStorage.get('vpn:profile');
+      if (!stored) {
+        return { profile: null, rawConfig: null };
+      }
+
+      try {
+        return { profile: JSON.parse(stored) as VpnProfile, rawConfig: null };
+      } catch {
+        return { profile: null, rawConfig: null };
+      }
+    },
+    deleteVpnProfile: () => secureStorage.delete('vpn:profile'),
     clearSecureStorage: () => secureStorage.clearSecureStorage(),
 
     // Lifecycle

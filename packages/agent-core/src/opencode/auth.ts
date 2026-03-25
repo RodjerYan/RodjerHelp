@@ -44,11 +44,7 @@ export function getOpenAiOauthStatus(): { connected: boolean; expires?: number }
 }
 
 export function getOpenCodeAuthPath(): string {
-  const homeDir = os.homedir();
-  if (process.platform === 'win32') {
-    return path.join(homeDir, 'AppData', 'Local', 'opencode', 'auth.json');
-  }
-  return path.join(homeDir, '.local', 'share', 'opencode', 'auth.json');
+  return getOpenCodeAuthJsonPath();
 }
 
 export function writeOpenCodeAuth(

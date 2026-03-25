@@ -12,6 +12,7 @@ import {
   isCliAvailable as coreIsCliAvailable,
   buildCliArgs as coreBuildCliArgs,
   buildOpenCodeEnvironment,
+  getOpenAiOauthStatus,
   type BrowserServerConfig,
   type CliResolverConfig,
   type EnvironmentConfig,
@@ -220,17 +221,36 @@ export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise
   const storage = getStorage();
   const activeModel = storage.getActiveProviderModel();
   const selectedModel = activeModel || storage.getSelectedModel();
+  let effectiveSelectedModel = selectedModel
+    ? {
+        provider: selectedModel.provider,
+        model: selectedModel.model,
+      }
+    : null;
+
+  if (
+    effectiveSelectedModel?.provider === 'openai' &&
+    /-codex$/i.test(effectiveSelectedModel.model)
+  ) {
+    const hasOpenAiApiKey = Boolean(getApiKey('openai')?.trim());
+    const oauthStatus = getOpenAiOauthStatus();
+    if (hasOpenAiApiKey || !oauthStatus.connected) {
+      const normalizedModel = effectiveSelectedModel.model.replace(/-codex$/i, '');
+      console.warn(
+        `[OpenCode CLI] Selected OpenAI Codex model is not compatible with the current desktop auth flow. Falling back to API-compatible model: ${normalizedModel}`,
+      );
+      effectiveSelectedModel = {
+        ...effectiveSelectedModel,
+        model: normalizedModel,
+      };
+    }
+  }
 
   return coreBuildCliArgs({
     prompt: config.prompt,
     systemPromptAppend: config.systemPromptAppend,
     sessionId: config.sessionId,
-    selectedModel: selectedModel
-      ? {
-          provider: selectedModel.provider,
-          model: selectedModel.model,
-        }
-      : null,
+    selectedModel: effectiveSelectedModel,
   });
 }
 

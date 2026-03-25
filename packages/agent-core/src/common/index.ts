@@ -114,6 +114,14 @@ export type { SkillSource, Skill, SkillFrontmatter } from './types/skills.js';
 export type { TodoItem } from './types/todo.js';
 export type { LogLevel, LogSource, LogEntry } from './types/logging.js';
 export type { ThoughtEvent, CheckpointEvent } from './types/thought-stream.js';
+export type {
+  VpnProtocol,
+  VpnConnectionState,
+  VpnProfile,
+  VpnSettings,
+  VpnProfileSnapshot,
+  VpnStatus,
+} from './types/vpn.js';
 
 // === CONSTANTS ===
 export {

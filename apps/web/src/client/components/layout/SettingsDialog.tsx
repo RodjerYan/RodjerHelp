@@ -13,14 +13,16 @@ import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { IntelligenceTab } from '@/components/settings/IntelligenceTab';
+import { VpnTab } from '@/components/settings/VpnTab';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
-import { Key, Lightning, Microphone, Info, Plugs, Brain } from '@phosphor-icons/react';
+import { Key, Lightning, Microphone, Info, Plugs, Brain, ShieldCheck } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/rodjerhelp-icon.png';
 
 const TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
+  { id: 'vpn' as const, labelKey: 'tabs.vpn', icon: ShieldCheck },
   { id: 'intelligence' as const, labelKey: 'tabs.intelligence', icon: Brain },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
@@ -39,7 +41,7 @@ interface SettingsDialogProps {
   /**
    * Вкладка, которую показывать при открытии диалога ('providers' или 'voice')
    */
-  initialTab?: 'providers' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about';
+  initialTab?: 'providers' | 'vpn' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about';
 }
 
 export function SettingsDialog({
@@ -50,12 +52,13 @@ export function SettingsDialog({
   initialTab = 'providers',
 }: SettingsDialogProps) {
   const { t } = useTranslation('settings');
+  const { t: tCommon } = useTranslation('common');
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
   const [gridExpanded, setGridExpanded] = useState(false);
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about'
+    'providers' | 'vpn' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about'
   >(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -308,10 +311,10 @@ export function SettingsDialog({
         <nav className="w-48 shrink-0 border-r border-border bg-muted/30 p-3 flex flex-col gap-1">
           <div className="px-3 py-2 mb-1">
             <div className="flex items-center gap-2">
-              <img src={logoImage} alt={t('common.app.name')} className="h-8 w-8" />
+              <img src={logoImage} alt={tCommon('app.name')} className="h-8 w-8" />
               <div className="flex flex-col leading-none">
-                <span className="text-sm font-semibold">{t('common.app.name')}</span>
-                <span className="text-[11px] text-muted-foreground">{t('common.app.byline')}</span>
+                <span className="text-sm font-semibold">{tCommon('app.name')}</span>
+                <span className="text-[11px] text-muted-foreground">{tCommon('app.byline')}</span>
               </div>
             </div>
           </div>
@@ -442,6 +445,7 @@ export function SettingsDialog({
                 </div>
               )}
 
+              {activeTab === 'vpn' && <VpnTab />}
               {activeTab === 'intelligence' && <IntelligenceTab />}
 
               {/* Вкладка навыков */}

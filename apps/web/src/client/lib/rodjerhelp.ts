@@ -26,7 +26,14 @@ import type {
   Skill,
   McpConnector,
 } from '@accomplish_ai/agent-core/common';
-import type { FileAccessMode, LearningInsight, LearningSettings } from '@accomplish_ai/agent-core';
+import type {
+  FileAccessMode,
+  LearningInsight,
+  LearningSettings,
+  VpnProfileSnapshot,
+  VpnSettings,
+  VpnStatus,
+} from '@accomplish_ai/agent-core';
 
 export interface AppUpdateStatus {
   status:
@@ -117,11 +124,23 @@ export interface RodjerHelpAPI {
   getFileAccessMode?(): Promise<FileAccessMode>;
   setFileAccessMode?(mode: FileAccessMode): Promise<void>;
   getLearningSettings?(): Promise<LearningSettings>;
+  getVpnSettings?(): Promise<VpnSettings>;
+  setVpnEnabled?(enabled: boolean): Promise<void>;
+  setVpnAutoConnect?(enabled: boolean): Promise<void>;
+  setVpnRequireTunnel?(enabled: boolean): Promise<void>;
+  setVpnKillSwitch?(enabled: boolean): Promise<void>;
   setSelfLearningEnabled?(enabled: boolean): Promise<void>;
   setAutoApplyLearning?(enabled: boolean): Promise<void>;
   getLearningInsights?(): Promise<LearningInsight[]>;
   deleteLearningInsight?(insightId: string): Promise<void>;
   clearLearningInsights?(): Promise<void>;
+  getVpnProfile?(): Promise<VpnProfileSnapshot>;
+  saveVpnProfile?(payload: { rawConfig: string; name?: string }): Promise<VpnProfileSnapshot>;
+  deleteVpnProfile?(): Promise<boolean>;
+  importVpnProfile?(): Promise<VpnProfileSnapshot | null>;
+  getVpnStatus?(): Promise<VpnStatus>;
+  connectVpn?(): Promise<VpnStatus>;
+  disconnectVpn?(): Promise<VpnStatus>;
   onThemeChange?(callback: (data: { theme: string; resolved: string }) => void): () => void;
   onFileAccessModeChange?(callback: (data: { mode: FileAccessMode }) => void): () => void;
   getAppSettings(): Promise<{

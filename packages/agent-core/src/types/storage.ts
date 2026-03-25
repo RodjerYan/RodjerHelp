@@ -14,6 +14,7 @@ import type {
   ConnectedProvider,
 } from '../common/types/providerSettings.js';
 import type { McpConnector, ConnectorStatus, OAuthTokens } from '../common/types/connector.js';
+import type { VpnProfile, VpnProfileSnapshot, VpnSettings } from '../common/types/vpn.js';
 
 /** Options for creating a Storage instance */
 export interface StorageOptions {
@@ -147,6 +148,16 @@ export interface AppSettingsAPI {
   setAutoApplyLearning(enabled: boolean): void;
   /** Get learning settings snapshot */
   getLearningSettings(): LearningSettings;
+  /** Get the integrated VPN settings snapshot */
+  getVpnSettings(): VpnSettings;
+  /** Enable or disable integrated VPN mode */
+  setVpnEnabled(enabled: boolean): void;
+  /** Enable or disable automatic VPN connection before tasks */
+  setVpnAutoConnect(enabled: boolean): void;
+  /** Require the VPN tunnel before networked tasks can run */
+  setVpnRequireTunnel(enabled: boolean): void;
+  /** Enable or disable kill switch behavior for the VPN profile */
+  setVpnKillSwitch(enabled: boolean): void;
   /** Get all application settings as a snapshot */
   getAppSettings(): AppSettings;
   /** Reset all application settings to defaults */
@@ -217,6 +228,12 @@ export interface SecureStorageAPI {
   hasAnyApiKey(): Promise<boolean>;
   /** List all stored credential entries */
   listStoredCredentials(): Array<{ account: string; password: string }>;
+  /** Store the encrypted VPN profile */
+  storeVpnProfile(profile: VpnProfile): void;
+  /** Retrieve the encrypted VPN profile */
+  getVpnProfile(): VpnProfileSnapshot;
+  /** Delete the encrypted VPN profile */
+  deleteVpnProfile(): boolean;
   /** Delete all stored credentials */
   clearSecureStorage(): void;
 }
@@ -288,4 +305,7 @@ export type {
   OAuthTokens,
   LearningInsight,
   LearningSettings,
+  VpnProfile,
+  VpnProfileSnapshot,
+  VpnSettings,
 };
