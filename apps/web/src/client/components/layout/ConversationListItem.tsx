@@ -1,36 +1,17 @@
-import { useMemo, type MouseEvent } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Task } from '@accomplish_ai/agent-core/common';
 import { cn } from '@/lib/utils';
-import { DotsThree, PushPin, SpinnerGap, X } from '@phosphor-icons/react';
+import { X, SpinnerGap } from '@phosphor-icons/react';
 import { useTaskStore } from '@/stores/taskStore';
 import { STATUS_COLORS, extractDomains } from '@/lib/task-utils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface ConversationListItemProps {
   task: Task;
-  isPinned?: boolean;
-  isArchived?: boolean;
-  onTogglePin?: (taskId: string) => void;
-  onToggleArchive?: (taskId: string) => void;
-  onDuplicatePrompt?: (task: Task) => void;
 }
 
-export function ConversationListItem({
-  task,
-  isPinned = false,
-  isArchived = false,
-  onTogglePin,
-  onToggleArchive,
-  onDuplicatePrompt,
-}: ConversationListItemProps) {
+export function ConversationListItem({ task }: ConversationListItemProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation('sidebar');
@@ -84,7 +65,6 @@ export function ConversationListItem({
           <span className={cn('w-2 h-2 rounded-full', statusColor)} />
         )}
       </span>
-      {isPinned && <PushPin className="h-3 w-3 shrink-0 text-primary" weight="fill" />}
       <span className="block truncate flex-1 tracking-[0.18px]">{task.summary || task.prompt}</span>
       <span className="relative flex items-center shrink-0 h-5">
         {domains.length > 0 && (
@@ -110,65 +90,20 @@ export function ConversationListItem({
             ))}
           </span>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-              }}
-              className={cn(
-                'absolute right-0 top-1/2 -translate-y-1/2',
-                'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
-                'transition-opacity duration-200',
-                'p-1 rounded hover:bg-muted',
-                'text-zinc-400 hover:text-foreground',
-              )}
-              aria-label={t('taskActions')}
-              title={t('taskActions')}
-            >
-              <DotsThree className="h-4 w-4" weight="bold" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="min-w-[180px]"
-            onClick={(event: MouseEvent<HTMLDivElement>) => event.stopPropagation()}
-          >
-            <DropdownMenuItem
-              onClick={(event: MouseEvent<HTMLDivElement>) => {
-                event.stopPropagation();
-                onTogglePin?.(task.id);
-              }}
-            >
-              {isPinned ? t('unpinTask') : t('pinTask')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(event: MouseEvent<HTMLDivElement>) => {
-                event.stopPropagation();
-                onToggleArchive?.(task.id);
-              }}
-            >
-              {isArchived ? t('unarchiveTask') : t('archiveTask')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(event: MouseEvent<HTMLDivElement>) => {
-                event.stopPropagation();
-                onDuplicatePrompt?.(task);
-              }}
-            >
-              {t('repeatTaskPrompt')}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              <X className="h-3 w-3" />
-              {t('deleteTask')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <button
+          onClick={handleDelete}
+          title={t('deleteTask')}
+          className={cn(
+            'absolute right-0 top-1/2 -translate-y-1/2',
+            'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
+            'transition-opacity duration-200',
+            'p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20',
+            'text-zinc-400 hover:text-red-600 dark:hover:text-red-400',
+          )}
+          aria-label={t('deleteTask')}
+        >
+          <X className="h-3 w-3" />
+        </button>
       </span>
     </div>
   );

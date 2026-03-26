@@ -1,10 +1,7 @@
 {
   "newTask": "Новая задача",
   "searchTasks": "Поиск задач (Ctrl+K)",
-  "taskSearchPlaceholder": "Поиск по названию или ID...",
   "noConversations": "Пока нет диалогов",
-  "noArchivedTasks": "В архиве пока пусто",
-  "noTasksForFilter": "Для выбранного фильтра задач нет",
   "settings": "Настройки",
   "searchPlaceholder": "Поиск задач...",
   "results": "Результаты",
@@ -14,26 +11,5 @@
   "select": "Выбрать",
   "close": "Закрыть",
   "confirmDelete": "Вы уверены, что хотите удалить эту задачу?",
-  "deleteTask": "Удалить задачу",
-  "taskActions": "Действия задачи",
-  "pinTask": "Закрепить",
-  "unpinTask": "Открепить",
-  "archiveTask": "В архив",
-  "unarchiveTask": "Вернуть из архива",
-  "repeatTaskPrompt": "Повторить промпт",
-  "showArchived": "Архив: {{count}}",
-  "showMainList": "Вернуться к активным",
-  "restoreAllArchived": "Очистить архив",
-  "sortLabel": "Сортировка",
-  "sort": {
-    "recent": "Сначала новые",
-    "oldest": "Сначала старые",
-    "title": "По алфавиту"
-  },
-  "filters": {
-    "all": "Все",
-    "active": "Активные",
-    "completed": "Готово",
-    "failed": "Ошибки"
-  }
+  "deleteTask": "Удалить задачу"
 }

@@ -29,36 +29,8 @@ const USE_CASE_KEYS = [
   { key: 'eventCalendarBuilder', icons: ['eventbrite.com', 'calendar.google.com'] },
 ] as const;
 
-const HOME_DRAFT_KEY = 'rodjerhelp.home.promptDraft';
-
-function readHomeDraft(): string {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  try {
-    return window.localStorage.getItem(HOME_DRAFT_KEY) || '';
-  } catch {
-    return '';
-  }
-}
-
-function writeHomeDraft(value: string): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    if (value.trim()) {
-      window.localStorage.setItem(HOME_DRAFT_KEY, value);
-    } else {
-      window.localStorage.removeItem(HOME_DRAFT_KEY);
-    }
-  } catch {
-    // ignore storage write errors
-  }
-}
-
 export function HomePage() {
-  const [prompt, setPrompt] = useState(() => readHomeDraft());
+  const [prompt, setPrompt] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<PickedFile[]>([]);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
@@ -95,10 +67,6 @@ export function HomePage() {
       unsubscribePermission();
     };
   }, [addTaskUpdate, setPermissionRequest, accomplish]);
-
-  useEffect(() => {
-    writeHomeDraft(prompt);
-  }, [prompt]);
 
   const handleAttachFiles = useCallback(async () => {
     try {
@@ -166,7 +134,6 @@ export function HomePage() {
       setAttachedFiles([]);
       await clearLastPickedChatFiles();
       setPrompt('');
-      writeHomeDraft('');
       navigate(`/execution/${task.id}`);
     }
   }, [attachedFiles, prompt, isLoading, startTask, navigate]);

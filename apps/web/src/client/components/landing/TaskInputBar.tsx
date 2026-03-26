@@ -200,13 +200,6 @@ export function TaskInputBar({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (canSubmit && !speechInput.isRecording && !isLoading) {
-        onSubmit();
-      }
-      return;
-    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (canSubmit && !speechInput.isRecording && !isLoading) {
