@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useOutlet, useLocation } from 'react-router';
+import { useOutlet, useLocation, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { isRunningInElectron, getRodjerHelp } from './lib/rodjerhelp';
@@ -12,8 +12,15 @@ import { VpnStatusIndicator } from './components/layout/VpnStatusIndicator';
 import { TaskLauncher } from './components/TaskLauncher';
 import { AuthErrorToast } from './components/AuthErrorToast';
 import SettingsDialog from './components/layout/SettingsDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './components/ui/dialog';
 import { useTaskStore } from './stores/taskStore';
-import { SpinnerGap, Warning } from '@phosphor-icons/react';
+import { Keyboard, SpinnerGap, Warning } from '@phosphor-icons/react';
 
 type AppStatus = 'loading' | 'ready' | 'error';
 
@@ -50,12 +57,15 @@ function AnimatedOutletWrapper() {
 
 export function App() {
   const { t } = useTranslation('errors');
+  const { t: tCommon } = useTranslation('common');
+  const navigate = useNavigate();
   const [status, setStatus] = useState<AppStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authSettingsOpen, setAuthSettingsOpen] = useState(false);
   const [authSettingsProvider, setAuthSettingsProvider] = useState<ProviderId | undefined>(
     undefined,
   );
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Get store state and actions
   const { openLauncher, authError, clearAuthError } = useTaskStore();
@@ -86,12 +96,26 @@ export function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         openLauncher();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        navigate('/');
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === '/' || e.key === '?')) {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowShortcuts(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [openLauncher]);
+  }, [navigate, openLauncher]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -167,6 +191,41 @@ export function App() {
           setAuthSettingsOpen(false);
         }}
       />
+      <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              {tCommon('shortcuts.title')}
+            </DialogTitle>
+            <DialogDescription>{tCommon('shortcuts.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between rounded-md border border-border/70 bg-background/40 px-3 py-2">
+              <span>{tCommon('shortcuts.openSearch')}</span>
+              <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-xs">
+                Ctrl/Cmd+K
+              </kbd>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border/70 bg-background/40 px-3 py-2">
+              <span>{tCommon('shortcuts.newTask')}</span>
+              <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-xs">
+                Ctrl/Cmd+N
+              </kbd>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border/70 bg-background/40 px-3 py-2">
+              <span>{tCommon('shortcuts.sendMessage')}</span>
+              <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-xs">
+                Ctrl/Cmd+Enter
+              </kbd>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border/70 bg-background/40 px-3 py-2">
+              <span>{tCommon('shortcuts.closeDialog')}</span>
+              <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-xs">Esc</kbd>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

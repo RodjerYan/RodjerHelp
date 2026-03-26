@@ -36,6 +36,13 @@
   "processing": "Обработка",
   "system": "Система",
   "copyToClipboard": "Скопировать в буфер",
+  "header": {
+    "copyLastAnswer": "Копировать последний ответ",
+    "exportMarkdown": "Экспорт в Markdown",
+    "copied": "Ответ скопирован",
+    "exported": "Файл сохранён",
+    "noAssistantMessage": "Пока нет ответа ассистента"
+  },
   "permission": {
     "title": "Требуется разрешение",
     "fileTitle": "Требуется доступ к файлу",

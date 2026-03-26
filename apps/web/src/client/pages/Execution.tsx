@@ -23,6 +23,7 @@ import {
   Clock,
   Square,
   Download,
+  CopySimple,
   CaretDown,
   Paperclip,
   X,
@@ -50,6 +51,37 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
   }) as T;
 }
 
+function getExecutionDraftKey(taskId: string): string {
+  return `rodjerhelp.execution.draft.${taskId}`;
+}
+
+function readExecutionDraft(taskId: string): string {
+  if (typeof window === 'undefined' || !taskId) {
+    return '';
+  }
+  try {
+    return window.localStorage.getItem(getExecutionDraftKey(taskId)) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writeExecutionDraft(taskId: string, value: string): void {
+  if (typeof window === 'undefined' || !taskId) {
+    return;
+  }
+  try {
+    const key = getExecutionDraftKey(taskId);
+    if (value.trim()) {
+      window.localStorage.setItem(key, value);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // ignore storage write errors
+  }
+}
+
 export function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -58,6 +90,7 @@ export function ExecutionPage() {
   const { t: tCommon } = useTranslation('common');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [followUp, setFollowUp] = useState('');
+  const [headerActionFeedback, setHeaderActionFeedback] = useState<string | null>(null);
   const followUpInputRef = useRef<HTMLTextAreaElement>(null);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [currentToolInput, setCurrentToolInput] = useState<unknown>(null);
@@ -164,6 +197,7 @@ export function ExecutionPage() {
       setCurrentTool(null);
       setCurrentToolInput(null);
       setAttachedFiles([]);
+      setFollowUp(readExecutionDraft(id));
       void clearLastPickedChatFiles();
       accomplish.getTodosForTask(id).then((todos) => {
         useTaskStore.getState().setTodos(id, todos);
@@ -237,6 +271,13 @@ export function ExecutionPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, loadTaskById, addTaskUpdate, addTaskUpdateBatch, updateTaskStatus, setPermissionRequest]);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+    writeExecutionDraft(id, followUp);
+  }, [id, followUp]);
 
   useEffect(() => {
     if (isAtBottom) {
@@ -517,6 +558,86 @@ export function ExecutionPage() {
     }
   };
 
+  const showHeaderFeedback = useCallback((message: string) => {
+    setHeaderActionFeedback(message);
+    window.setTimeout(() => {
+      setHeaderActionFeedback((prev) => (prev === message ? null : prev));
+    }, 1600);
+  }, []);
+
+  const buildTaskMarkdown = useCallback(() => {
+    if (!currentTask) {
+      return '';
+    }
+    const lines: string[] = [];
+    lines.push(`# ${currentTask.summary || currentTask.prompt || currentTask.id}`);
+    lines.push('');
+    lines.push(`- ID: ${currentTask.id}`);
+    lines.push(`- Статус: ${currentTask.status}`);
+    lines.push(`- Создано: ${currentTask.createdAt}`);
+    lines.push('');
+    lines.push('## Сообщения');
+    lines.push('');
+
+    for (const message of currentTask.messages) {
+      if (message.type === 'tool' && message.toolName?.toLowerCase() === 'bash') {
+        continue;
+      }
+      const role =
+        message.type === 'assistant'
+          ? 'Ассистент'
+          : message.type === 'user'
+            ? 'Пользователь'
+            : message.type === 'system'
+              ? 'Система'
+              : 'Инструмент';
+      lines.push(`### ${role} · ${new Date(message.timestamp).toLocaleString('ru-RU')}`);
+      lines.push('');
+      lines.push(message.content || '');
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }, [currentTask]);
+
+  const handleCopyLastAssistant = useCallback(async () => {
+    if (!currentTask) {
+      return;
+    }
+    const lastAssistant = [...currentTask.messages]
+      .reverse()
+      .find((message) => message.type === 'assistant' && message.content?.trim());
+
+    if (!lastAssistant) {
+      showHeaderFeedback(t('header.noAssistantMessage'));
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(lastAssistant.content);
+      showHeaderFeedback(t('header.copied'));
+    } catch {
+      showHeaderFeedback(t('copyToClipboard'));
+    }
+  }, [currentTask, showHeaderFeedback, t]);
+
+  const handleExportTaskMarkdown = useCallback(() => {
+    if (!currentTask) {
+      return;
+    }
+    const markdown = buildTaskMarkdown();
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rodjerhelp-task-${currentTask.id}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showHeaderFeedback(t('header.exported'));
+  }, [buildTaskMarkdown, currentTask, showHeaderFeedback, t]);
+
   if (error) {
     return (
       <div className="h-full flex items-center justify-center p-6">
@@ -619,6 +740,35 @@ export function ExecutionPage() {
                 </h1>
                 <span data-testid="execution-status-badge">{getStatusBadge()}</span>
               </div>
+            </div>
+            <div className="ml-3 flex items-center gap-2 shrink-0">
+              {headerActionFeedback && (
+                <span className="hidden md:inline-flex rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+                  {headerActionFeedback}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  void handleCopyLastAssistant();
+                }}
+                title={t('header.copyLastAnswer')}
+              >
+                <CopySimple className="h-4 w-4" />
+                <span className="hidden md:inline">{t('header.copyLastAnswer')}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleExportTaskMarkdown}
+                title={t('header.exportMarkdown')}
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden md:inline">{t('header.exportMarkdown')}</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -950,6 +1100,11 @@ export function ExecutionPage() {
                     onFocus={() => focusFollowUpInput(0)}
                     onKeyDown={(e) => {
                       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        handleFollowUp();
+                        return;
+                      }
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleFollowUp();

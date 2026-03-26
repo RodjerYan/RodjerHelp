@@ -64,6 +64,14 @@
     "history": "История",
     "settings": "Настройки"
   },
+  "shortcuts": {
+    "title": "Горячие клавиши",
+    "description": "Быстрые действия для работы без мыши",
+    "openSearch": "Открыть запускатель задач",
+    "newTask": "Новая задача",
+    "sendMessage": "Отправить сообщение/промпт",
+    "closeDialog": "Закрыть окно"
+  },
   "labels": {
     "awsCredentials": "Учетные данные AWS",
     "gcpCredentials": "Учетные данные GCP",
