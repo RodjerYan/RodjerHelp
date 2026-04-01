@@ -298,7 +298,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-4xl w-full h-[65vh] flex overflow-hidden p-0"
+        className="flex h-[70vh] w-full max-w-5xl overflow-hidden border border-border/70 bg-white/78 p-0 shadow-[0_34px_90px_rgba(45,76,132,0.24)]"
         data-testid="settings-dialog"
         onOpenAutoFocus={(e: Event) => e.preventDefault()}
         onCloseAutoFocus={(e: Event) => e.preventDefault()}
@@ -308,10 +308,10 @@ export function SettingsDialog({
         </DialogHeader>
 
         {/* Навигация в левой панели */}
-        <nav className="w-48 shrink-0 border-r border-border bg-muted/30 p-3 flex flex-col gap-1">
-          <div className="px-3 py-2 mb-1">
+        <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-border/70 bg-white/62 p-3">
+          <div className="mb-1 px-3 py-2">
             <div className="flex items-center gap-2">
-              <img src={logoImage} alt={tCommon('app.name')} className="h-8 w-8" />
+              <img src={logoImage} alt={tCommon('app.name')} className="h-8 w-8 rounded-xl" />
               <div className="flex flex-col leading-none">
                 <span className="text-sm font-semibold">{tCommon('app.name')}</span>
                 <span className="text-[11px] text-muted-foreground">{tCommon('app.byline')}</span>
@@ -323,10 +323,10 @@ export function SettingsDialog({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left',
+                'flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors',
                 activeTab === tab.id
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
+                  ? 'bg-white text-foreground shadow-[0_8px_20px_rgba(47,81,142,0.12)]'
+                  : 'text-muted-foreground hover:bg-white/80 hover:text-foreground',
               )}
             >
               <tab.icon className="h-4 w-4 shrink-0" />
@@ -338,7 +338,7 @@ export function SettingsDialog({
         {/* Правая область контента */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Заголовок контента с названием и действиями */}
-          <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <div className="flex items-center justify-between border-b border-border/70 px-6 pb-3 pt-5">
             <h3 className="text-sm font-semibold text-foreground">
               {TABS.find((tab) => tab.id === activeTab)?.labelKey &&
                 t(TABS.find((tab) => tab.id === activeTab)!.labelKey)}

@@ -142,12 +142,12 @@ export function App() {
 
   // Ready - render the app with sidebar
   return (
-    <div className="flex h-screen overflow-hidden bg-background macos26 macos26-bg macos26-noise">
+    <div className="macos26 macos26-bg macos26-noise flex h-screen overflow-hidden bg-background">
       {/* Invisible drag region for window dragging (macOS hiddenInset titlebar) */}
       <div className="drag-region fixed top-0 left-0 right-0 h-10 z-50 pointer-events-none" />
       <Sidebar />
-      <main className="relative flex-1 overflow-hidden">
-        <div className="pointer-events-none absolute top-3 right-4 z-40">
+      <main className="relative flex-1 overflow-hidden px-2 py-2">
+        <div className="pointer-events-none absolute right-6 top-5 z-40">
           <VpnStatusIndicator />
         </div>
         <AnimatedOutletWrapper />

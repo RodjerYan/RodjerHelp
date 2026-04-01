@@ -26,7 +26,7 @@ function getStatusPresentation(
   if (!status.hasProfile) {
     return {
       label: t('common:vpnStatus.notConfigured'),
-      className: 'border-white/10 bg-white/5 text-muted-foreground',
+      className: 'border-border/70 bg-white/72 text-muted-foreground',
       icon: <ShieldSlash className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
@@ -34,7 +34,7 @@ function getStatusPresentation(
   if (status.state === 'connected') {
     return {
       label: t('settings:vpn.states.connected'),
-      className: 'border-emerald-500/30 bg-emerald-500/12 text-emerald-200',
+      className: 'border-emerald-500/35 bg-emerald-500/12 text-emerald-700',
       icon: <ShieldCheck className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
@@ -42,7 +42,7 @@ function getStatusPresentation(
   if (status.state === 'connecting' || status.state === 'disconnecting') {
     return {
       label: t(`settings:vpn.states.${status.state}`),
-      className: 'border-sky-500/30 bg-sky-500/12 text-sky-200',
+      className: 'border-sky-500/35 bg-sky-500/12 text-sky-700',
       icon: <ArrowsClockwise className="h-3.5 w-3.5 animate-spin" />,
     };
   }
@@ -58,14 +58,14 @@ function getStatusPresentation(
   if (status.state === 'unsupported' || !status.clientAvailable || !status.serviceAvailable) {
     return {
       label: t('common:vpnStatus.unavailable'),
-      className: 'border-white/10 bg-white/5 text-muted-foreground',
+      className: 'border-border/70 bg-white/72 text-muted-foreground',
       icon: <WarningCircle className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
 
   return {
     label: t('settings:vpn.states.disconnected'),
-    className: 'border-amber-500/30 bg-amber-500/12 text-amber-200',
+    className: 'border-amber-500/35 bg-amber-500/12 text-amber-700',
     icon: <ShieldSlash className="h-3.5 w-3.5" weight="duotone" />,
   };
 }
@@ -134,13 +134,13 @@ export function VpnStatusIndicator({ className }: { className?: string }) {
     <Badge
       variant="outline"
       className={cn(
-        'pointer-events-auto gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium tracking-[0.01em] shadow-sm backdrop-blur-md',
-        loading ? 'border-white/10 bg-white/5 text-muted-foreground' : presentation.className,
+        'pointer-events-auto gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium tracking-[0.01em] shadow-[0_10px_20px_rgba(44,74,132,0.14)] backdrop-blur-md',
+        loading ? 'border-border/70 bg-white/72 text-muted-foreground' : presentation.className,
         className,
       )}
     >
       {loading ? <ArrowsClockwise className="h-3.5 w-3.5 animate-spin" /> : presentation.icon}
-      <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/80">VPN</span>
+      <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/75">VPN</span>
       <span>{loading ? t('common:buttons.testing') : presentation.label}</span>
     </Badge>
   );

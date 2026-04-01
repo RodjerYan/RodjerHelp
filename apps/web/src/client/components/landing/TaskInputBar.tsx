@@ -232,7 +232,7 @@ export function TaskInputBar({
       )}
 
       <div
-        className={`rounded-[12px] border bg-popover/70 transition-all duration-200 ease-accomplish cursor-text focus-within:border-muted-foreground/40 ${isDragOver ? 'border-primary ring-2 ring-primary/30' : 'border-border'}`}
+        className={`rounded-[24px] border bg-white/72 shadow-[0_18px_44px_rgba(52,88,148,0.12)] transition-all duration-200 ease-accomplish cursor-text focus-within:border-primary/40 ${isDragOver ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'}`}
         onPointerDownCapture={() => focusTextareaSafely(textareaRef.current, 0)}
         onMouseDown={() => reviveInputInteractivity()}
         onClick={() => {
@@ -284,7 +284,7 @@ export function TaskInputBar({
               {attachments.map((f) => (
                 <div
                   key={f.path}
-                  className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-muted/55 px-3 py-1.5 text-xs text-foreground shadow-sm transition-colors hover:bg-muted/75"
+                  className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-white/74 px-3 py-1.5 text-xs text-foreground shadow-sm transition-colors hover:bg-white"
                   title={f.path}
                 >
                   <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -365,12 +365,12 @@ export function TaskInputBar({
                     onSubmit();
                   }}
                   disabled={isSubmitDisabled || speechInput.isRecording}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-accomplish ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all duration-200 ease-accomplish ${
                     isLoading
-                      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                      ? 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'
                       : isSubmitDisabled || speechInput.isRecording
-                        ? 'bg-muted text-muted-foreground/60'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        ? 'border-border bg-muted text-muted-foreground/60'
+                        : 'border-primary/80 bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}
                 >
                   {isLoading ? (

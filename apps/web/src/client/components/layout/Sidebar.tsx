@@ -48,15 +48,15 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex h-screen w-[260px] flex-col border-r border-white/10 bg-card/80 pt-12 macos26-surface macos26-sidebar shadow-2xl">
+      <div className="flex h-screen w-[284px] flex-col border-r border-border/70 bg-card/65 pt-12 macos26-surface macos26-sidebar shadow-[0_18px_42px_rgba(34,66,122,0.16)]">
         {/* Action Buttons */}
-        <div className="flex gap-2 border-b border-white/10 px-3 py-3">
+        <div className="flex gap-2 border-b border-border/70 px-3 py-3">
           <Button
             data-testid="sidebar-new-task-button"
             onClick={handleNewConversation}
             variant="default"
             size="sm"
-            className="flex-1 justify-center gap-2"
+            className="flex-1 justify-center gap-2 rounded-xl"
             title={t('newTask')}
           >
             <ChatText className="h-4 w-4" />
@@ -66,7 +66,7 @@ export default function Sidebar() {
             onClick={openLauncher}
             variant="outline"
             size="sm"
-            className="px-2"
+            className="rounded-xl px-2"
             title={t('searchTasks')}
           >
             <MagnifyingGlass className="h-4 w-4" />
@@ -75,7 +75,7 @@ export default function Sidebar() {
 
         {/* Conversation List */}
         <ScrollArea className="flex-1">
-          <div className="space-y-1 p-2.5">
+          <div className="space-y-1.5 p-2.5">
             <AnimatePresence mode="wait">
               {tasks.length === 0 ? (
                 <motion.div
@@ -105,18 +105,22 @@ export default function Sidebar() {
         </ScrollArea>
 
         {/* Bottom Section - Logo and Settings */}
-        <div className="flex items-center justify-between border-t border-white/10 px-3 py-4">
+        <div className="flex items-center justify-between border-t border-border/70 px-3 py-4">
           {/* Logo - Bottom Left */}
-          <div className="flex items-center">
-            <img src={logoImage} alt="RodjerHelp" style={{ height: '32px', paddingLeft: '6px' }} />
+          <div className="flex items-center gap-2 pl-1.5">
+            <img src={logoImage} alt="RodjerHelp" className="h-8 w-8 rounded-xl" />
+            <span className="text-sm font-semibold tracking-[-0.01em] text-foreground/90">
+              RodjerHelp
+            </span>
           </div>
 
           {/* Settings Button - Bottom Right */}
           <Button
             data-testid="sidebar-settings-button"
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => setShowSettings(true)}
+            className="h-8 w-8 rounded-xl"
             title={t('settings')}
           >
             <Gear className="h-4 w-4" />

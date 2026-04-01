@@ -249,7 +249,7 @@ export function HomePage() {
         initialTab={settingsInitialTab}
       />
 
-      <div className="h-full flex flex-col bg-accent relative overflow-hidden">
+      <div className="relative flex h-full flex-col overflow-hidden bg-accent/55">
         <div className="flex-1 overflow-y-auto p-6 pb-0">
           <div className="w-full max-w-[720px] mx-auto flex flex-col items-center gap-3">
             <motion.h1
@@ -257,7 +257,7 @@ export function HomePage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={springs.gentle}
-              className="font-apparat text-[32px] tracking-[-0.015em] text-foreground w-full text-center pt-[250px]"
+              className="w-full pt-[220px] text-center text-[36px] font-semibold tracking-[-0.028em] text-foreground macos26-h1"
             >
               {t('title')}
             </motion.h1>
@@ -303,8 +303,8 @@ export function HomePage() {
               transition={{ ...springs.gentle, delay: 0.2 }}
               className="w-full"
             >
-              <div className="flex flex-col gap-3 pt-[200px] pb-[120px]">
-                <h2 className="font-apparat text-[22px] font-light tracking-[-0.66px] text-foreground text-center">
+              <div className="flex flex-col gap-3 pt-[170px] pb-[120px]">
+                <h2 className="text-center text-[22px] font-semibold tracking-[-0.022em] text-foreground/95">
                   {t('examplePrompts')}
                 </h2>
 
@@ -318,10 +318,10 @@ export function HomePage() {
                       transition={{ duration: 0.2, delay: index * 0.05 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleExampleClick(example.prompt)}
-                      className="group flex flex-col justify-between rounded-[4px] border border-border hover:border-muted-foreground/40 active:border-muted-foreground/40 bg-accent pl-3 pr-4 py-3 text-left h-[164px] transition-colors"
+                      className="group flex h-[164px] flex-col justify-between rounded-2xl border border-border/70 bg-white/70 px-4 py-3 text-left shadow-[0_10px_28px_rgba(44,74,132,0.1)] transition-colors hover:border-primary/35 hover:bg-white/88 active:border-primary/35"
                     >
                       <div className="flex items-start justify-between w-full">
-                        <span className="font-sans text-[14px] leading-[18px] tracking-[-0.28px] text-foreground whitespace-pre-line w-[120px]">
+                        <span className="w-[132px] whitespace-pre-line text-[14px] font-semibold leading-[18px] tracking-[-0.02em] text-foreground">
                           {example.title}
                         </span>
                         <span className="shrink-0 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 group-active:translate-y-0 -scale-y-100 rotate-180">
@@ -329,7 +329,7 @@ export function HomePage() {
                         </span>
                       </div>
 
-                      <p className="text-[13px] leading-[15px] tracking-[-0.13px] text-muted-foreground">
+                      <p className="text-[13px] leading-[16px] tracking-[-0.01em] text-muted-foreground">
                         {example.description}
                       </p>
 

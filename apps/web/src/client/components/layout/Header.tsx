@@ -9,11 +9,11 @@ export default function Header() {
   const { t } = useTranslation('common');
 
   return (
-    <header className="drag-region sticky top-0 z-50 border-b border-white/10 bg-[rgba(7,10,18,0.72)] backdrop-blur-xl">
+    <header className="drag-region sticky top-0 z-50 border-b border-border/70 bg-white/72 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
         <Link to="/" className="no-drag flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary shadow-[0_8px_18px_rgba(29,123,255,0.33)]">
             <svg
               className="h-4 w-4 text-white"
               fill="none"
@@ -28,7 +28,9 @@ export default function Header() {
               />
             </svg>
           </div>
-          <span className="text-base font-medium text-text">{t('app.name')}</span>
+          <span className="text-base font-semibold tracking-[-0.012em] text-text">
+            {t('app.name')}
+          </span>
         </Link>
 
         {/* Navigation */}
@@ -66,8 +68,8 @@ function NavLink({
       to={to}
       className={cn(
         'no-drag rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-150',
-        'text-muted-foreground hover:text-foreground hover:bg-white/8',
-        active && 'bg-white/10 text-foreground shadow-sm',
+        'text-muted-foreground hover:text-foreground hover:bg-white/80',
+        active && 'bg-white text-foreground shadow-[0_8px_20px_rgba(53,92,164,0.14)]',
       )}
     >
       {children}

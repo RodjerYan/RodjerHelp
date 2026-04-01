@@ -40,7 +40,7 @@ function SelectTrigger({
       type="button"
       onClick={onClick}
       data-testid={testId}
-      className={`w-full rounded-md border bg-background px-3 py-2.5 text-sm text-left flex items-center justify-between ${
+      className={`flex w-full items-center justify-between rounded-xl border bg-white/70 px-3 py-2.5 text-left text-sm shadow-[0_8px_20px_rgba(42,74,131,0.08)] ${
         error ? 'border-destructive' : 'border-input'
       }`}
     >
@@ -69,8 +69,8 @@ function SelectOption({
       onClick={onSelect}
       data-testid={testId ? `${testId}-option-${item.id}` : undefined}
       data-model-id={item.id}
-      className={`w-full px-3 py-2 text-sm text-left hover:bg-muted ${
-        isSelected ? 'bg-muted font-medium' : ''
+      className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent/75 ${
+        isSelected ? 'bg-accent/90 font-medium' : ''
       }`}
     >
       {item.name}
@@ -103,7 +103,7 @@ function SelectDropdown({
 }) {
   return (
     <motion.div
-      className="absolute z-50 w-full mt-1 rounded-md border border-input bg-background shadow-lg"
+      className="absolute z-50 mt-1 w-full rounded-xl border border-input bg-white/94 shadow-[0_16px_34px_rgba(45,76,132,0.18)]"
       variants={settingsVariants.scaleDropdown}
       initial="initial"
       animate="animate"
@@ -113,18 +113,18 @@ function SelectDropdown({
       data-testid={testId ? `${testId}-dropdown` : undefined}
     >
       {showSearch && (
-        <div className="p-2 border-b border-input">
+        <div className="border-b border-input p-2">
           <input
             ref={inputRef}
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-input bg-white/90 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
           />
         </div>
       )}
-      <div className="max-h-60 overflow-y-auto">
+      <div className="max-h-60 overflow-y-auto p-1">
         {items.length === 0 ? (
           <div className="px-3 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
         ) : (
@@ -158,7 +158,7 @@ function SelectLoading({ label, loadingMessage }: { label: string; loadingMessag
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-foreground">{label}</label>
-      <div className="flex items-center gap-2.5 rounded-md border border-input bg-background px-3 py-2.5">
+      <div className="flex items-center gap-2.5 rounded-xl border border-input bg-white/70 px-3 py-2.5">
         <svg className="h-4 w-4 animate-spin text-muted-foreground" fill="none" viewBox="0 0 24 24">
           <circle
             className="opacity-25"

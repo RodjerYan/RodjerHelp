@@ -10,6 +10,10 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import Header from '@/components/layout/Header';
 
+function hasExactClass(element: Element, className: string): boolean {
+  return element.className.split(' ').includes(className);
+}
+
 describe('Header Integration', () => {
   describe('rendering', () => {
     it('should render the header element', () => {
@@ -134,7 +138,7 @@ describe('Header Integration', () => {
 
       // Assert
       const homeLink = screen.getByRole('link', { name: /^главная$/i });
-      expect(homeLink.className).toContain('bg-white/10');
+      expect(hasExactClass(homeLink, 'bg-white')).toBe(true);
     });
 
     it('should mark History link as active when on history route', () => {
@@ -147,7 +151,7 @@ describe('Header Integration', () => {
 
       // Assert
       const historyLink = screen.getByRole('link', { name: /история/i });
-      expect(historyLink.className).toContain('bg-white/10');
+      expect(hasExactClass(historyLink, 'bg-white')).toBe(true);
     });
 
     it('should mark Settings link as active when on settings route', () => {
@@ -160,7 +164,7 @@ describe('Header Integration', () => {
 
       // Assert
       const settingsLink = screen.getByRole('link', { name: /настройки/i });
-      expect(settingsLink.className).toContain('bg-white/10');
+      expect(hasExactClass(settingsLink, 'bg-white')).toBe(true);
     });
 
     it('should not mark Home link as active when on other routes', () => {
@@ -264,9 +268,9 @@ describe('Header Integration', () => {
       const historyLink = screen.getByRole('link', { name: /история/i });
       const settingsLink = screen.getByRole('link', { name: /настройки/i });
 
-      expect(homeLink.className).not.toContain('bg-white/10');
-      expect(historyLink.className).not.toContain('bg-white/10');
-      expect(settingsLink.className).not.toContain('bg-white/10');
+      expect(hasExactClass(homeLink, 'bg-white')).toBe(false);
+      expect(hasExactClass(historyLink, 'bg-white')).toBe(false);
+      expect(hasExactClass(settingsLink, 'bg-white')).toBe(false);
     });
   });
 });

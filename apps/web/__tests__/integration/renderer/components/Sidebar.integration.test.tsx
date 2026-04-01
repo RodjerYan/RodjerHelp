@@ -165,8 +165,8 @@ describe('Sidebar Integration', () => {
         </MemoryRouter>,
       );
 
-      // Assert - sidebar should be present (260px width)
-      const sidebar = document.querySelector('.w-\\[260px\\]');
+      // Assert - sidebar should be present
+      const sidebar = document.querySelector('.w-\\[284px\\]');
       expect(sidebar).toBeInTheDocument();
     });
 
@@ -383,7 +383,7 @@ describe('Sidebar Integration', () => {
 
       // Assert
       const taskItem = screen.getByText('Active task').closest('[role="button"]');
-      expect(taskItem?.className).toContain('bg-accent');
+      expect(taskItem?.className).toContain('bg-white');
     });
 
     it('should not highlight inactive conversations', () => {
@@ -526,7 +526,7 @@ describe('Sidebar Integration', () => {
       );
 
       // Assert - Check for border classes
-      const sidebar = document.querySelector('.w-\\[260px\\]');
+      const sidebar = document.querySelector('.w-\\[284px\\]');
       expect(sidebar?.className).toContain('border-r');
     });
 
