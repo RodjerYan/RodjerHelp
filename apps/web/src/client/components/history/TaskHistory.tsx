@@ -40,7 +40,7 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
                   clearHistory();
                 }
               }}
-              className="rounded-xl px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/72 hover:text-danger"
+              className="rounded-xl px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-accent/80 hover:text-danger"
             >
               {tCommon('buttons.clearAll')}
             </button>
@@ -57,7 +57,7 @@ export default function TaskHistory({ limit, showTitle = true }: TaskHistoryProp
       {limit && tasks.length > limit && (
         <Link
           to="/history"
-          className="mt-4 block rounded-xl px-3 py-2 text-center text-sm text-text-muted transition-colors hover:bg-white/70 hover:text-text"
+          className="mt-4 block rounded-xl px-3 py-2 text-center text-sm text-text-muted transition-colors hover:bg-accent/80 hover:text-text"
         >
           {t('viewAll', { count: tasks.length })}
         </Link>
@@ -85,7 +85,7 @@ function TaskHistoryItem({ task, onDelete }: { task: Task; onDelete: () => void 
   return (
     <Link
       to={`/execution/${task.id}`}
-      className="flex items-center gap-4 rounded-2xl border border-border/70 bg-white/72 p-4 shadow-[0_10px_24px_rgba(42,72,128,0.1)] transition-all hover:-translate-y-[1px] hover:border-primary/30 hover:bg-white/90 hover:shadow-[0_14px_34px_rgba(42,72,128,0.16)]"
+      className="flex items-center gap-4 rounded-2xl border border-border/80 bg-card/86 p-4 shadow-[0_14px_32px_rgba(0,0,0,0.24)] transition-all hover:-translate-y-[1px] hover:border-primary/35 hover:bg-card hover:shadow-[0_18px_40px_rgba(0,0,0,0.32)]"
     >
       <div className={`w-2 h-2 rounded-full ${config.color}`} />
       <div className="flex-1 min-w-0">
@@ -105,7 +105,7 @@ function TaskHistoryItem({ task, onDelete }: { task: Task; onDelete: () => void 
             onDelete();
           }
         }}
-        className="rounded-xl p-2 text-text-muted transition-colors hover:bg-red-50 hover:text-danger"
+        className="rounded-xl p-2 text-text-muted transition-colors hover:bg-destructive/15 hover:text-danger"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path

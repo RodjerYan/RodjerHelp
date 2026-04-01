@@ -53,9 +53,9 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
       title={task.summary || task.prompt}
       className={cn(
         'w-full text-left p-2.5 rounded-xl text-xs font-medium transition-colors duration-200',
-        'text-foreground hover:bg-white/72 hover:text-foreground',
+        'text-foreground hover:bg-accent/78 hover:text-foreground',
         'flex items-center gap-3 group relative cursor-pointer',
-        isActive && 'bg-white text-foreground shadow-[0_10px_22px_rgba(47,79,138,0.14)]',
+        isActive && 'bg-accent text-foreground shadow-[0_12px_28px_rgba(0,0,0,0.28)]',
       )}
     >
       <span className="flex items-center justify-center shrink-0 w-3 h-3">
@@ -73,7 +73,7 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
               <span
                 key={domain}
                 className={cn(
-                  'flex items-center p-0.5 rounded-full bg-white/85 shrink-0 relative',
+                  'flex items-center rounded-full bg-popover/92 p-0.5 shrink-0 relative',
                   i > 0 && '-ml-1',
                   i === 0 && 'z-30',
                   i === 1 && 'z-20',
@@ -97,7 +97,7 @@ export function ConversationListItem({ task }: ConversationListItemProps) {
             'absolute right-0 top-1/2 -translate-y-1/2',
             'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto',
             'transition-opacity duration-200',
-            'p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20',
+            'rounded-md p-1 hover:bg-destructive/15',
             'text-zinc-400 hover:text-red-600 dark:hover:text-red-400',
           )}
           aria-label={t('deleteTask')}

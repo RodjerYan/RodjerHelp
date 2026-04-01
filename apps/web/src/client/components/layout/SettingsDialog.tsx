@@ -298,7 +298,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex h-[70vh] w-full max-w-5xl overflow-hidden border border-border/70 bg-white/78 p-0 shadow-[0_34px_90px_rgba(45,76,132,0.24)]"
+        className="flex h-[70vh] w-full max-w-5xl overflow-hidden border border-border/80 bg-[rgba(9,14,26,0.94)] p-0 shadow-[0_36px_96px_rgba(0,0,0,0.46)]"
         data-testid="settings-dialog"
         onOpenAutoFocus={(e: Event) => e.preventDefault()}
         onCloseAutoFocus={(e: Event) => e.preventDefault()}
@@ -308,7 +308,7 @@ export function SettingsDialog({
         </DialogHeader>
 
         {/* Навигация в левой панели */}
-        <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-border/70 bg-white/62 p-3">
+        <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-border/80 bg-[rgba(8,12,22,0.82)] p-3">
           <div className="mb-1 px-3 py-2">
             <div className="flex items-center gap-2">
               <img src={logoImage} alt={tCommon('app.name')} className="h-8 w-8 rounded-xl" />
@@ -325,8 +325,8 @@ export function SettingsDialog({
               className={cn(
                 'flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors',
                 activeTab === tab.id
-                  ? 'bg-white text-foreground shadow-[0_8px_20px_rgba(47,81,142,0.12)]'
-                  : 'text-muted-foreground hover:bg-white/80 hover:text-foreground',
+                  ? 'bg-accent text-foreground shadow-[0_12px_28px_rgba(0,0,0,0.28)]'
+                  : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground',
               )}
             >
               <tab.icon className="h-4 w-4 shrink-0" />
@@ -352,7 +352,7 @@ export function SettingsDialog({
               <AnimatePresence>
                 {closeWarning && (
                   <motion.div
-                    className="rounded-lg border border-warning bg-warning/10 p-4 mb-6"
+                    className="mb-6 rounded-lg border border-warning/35 bg-warning/10 p-4"
                     variants={settingsVariants.fadeSlide}
                     initial="initial"
                     animate="animate"
@@ -383,7 +383,7 @@ export function SettingsDialog({
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={handleForceClose}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80"
+                            className="rounded-md bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
                           >
                             {t('warnings.closeAnyway')}
                           </button>
@@ -484,7 +484,7 @@ export function SettingsDialog({
                 </div>
                 <button
                   onClick={handleDone}
-                  className="flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-medium text-primary-foreground shadow-[0_14px_32px_rgba(32,112,255,0.34)] hover:bg-primary/90"
                   data-testid="settings-done-button"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

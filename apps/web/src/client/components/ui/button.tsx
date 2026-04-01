@@ -5,20 +5,19 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border/80 bg-white/70 text-sm font-semibold text-foreground shadow-[0_10px_24px_rgba(46,81,137,0.12)] backdrop-blur-md transition-all duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*="size-"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/35 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border/80 bg-card/88 text-sm font-semibold text-foreground shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*="size-"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/35 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground border-primary/80 hover:bg-primary/95 shadow-[0_12px_28px_rgba(29,123,255,0.32)]',
+          'bg-primary text-primary-foreground border-primary/85 hover:bg-primary/92 shadow-[0_16px_36px_rgba(32,112,255,0.34)]',
         destructive:
           'bg-destructive text-white border-destructive/80 hover:bg-destructive/92 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
-        outline:
-          'border-border/80 bg-white/65 text-foreground hover:bg-white/85 hover:text-foreground',
+        outline: 'border-border/80 bg-card/76 text-foreground hover:bg-card hover:text-foreground',
         secondary:
-          'bg-secondary/80 border-secondary/80 text-secondary-foreground hover:bg-secondary/95',
+          'bg-secondary/90 border-secondary/75 text-secondary-foreground hover:bg-secondary',
         ghost:
-          'border-transparent bg-transparent shadow-none hover:bg-accent/70 hover:text-foreground',
+          'border-transparent bg-transparent shadow-none hover:bg-accent/80 hover:text-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {

@@ -98,70 +98,70 @@
 
 /* Shadcn-inspired theme variables */
 :root {
-  --background: 216 35% 96.8%;
-  --foreground: 220 26% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 26% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 26% 15%;
-  --primary: 212 100% 53%;
-  --primary-foreground: 0 0% 100%; /* #ffffff */
-  --secondary: 217 48% 93%;
-  --secondary-foreground: 220 26% 22%;
-  --muted: 220 28% 94%;
-  --muted-foreground: 220 14% 42%;
-  --accent: 214 32% 95%;
-  --accent-foreground: 220 25% 18%;
+  --background: 224 30% 7%;
+  --foreground: 210 25% 96%;
+  --card: 224 24% 10%;
+  --card-foreground: 210 25% 96%;
+  --popover: 224 24% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 212 100% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 18% 16%;
+  --secondary-foreground: 210 24% 92%;
+  --muted: 222 16% 14%;
+  --muted-foreground: 217 12% 68%;
+  --accent: 220 18% 18%;
+  --accent-foreground: 210 25% 96%;
   --destructive: 8 78% 54%; /* #e54d2e */
   --destructive-foreground: 0 0% 100%; /* #ffffff */
-  --border: 216 28% 85%;
-  --input: 214 26% 90%;
-  --ring: 212 100% 53%;
+  --border: 220 16% 24%;
+  --input: 220 16% 18%;
+  --ring: 212 100% 60%;
   --radius: 0.875rem;
-  --warning-subtle: 36 95% 95%;
-  --success-subtle: 211 100% 95%;
-  --provider-bg: 40 20% 93%;
-  --provider-bg-active: 211 100% 95%;
-  --provider-bg-hover: 40 15% 96%;
-  --provider-border-active: 40 30% 25%;
-  --provider-accent: 211 100% 56%;
-  --provider-accent-text: 214 72% 26%;
-  --todo-progress-pending: 0 0% 85%;
-  --todo-item-completed: 36 11% 95%;
-  --todo-item-in-progress: 0 0% 98%;
+  --warning-subtle: 34 70% 15%;
+  --success-subtle: 151 55% 16%;
+  --provider-bg: 222 18% 14%;
+  --provider-bg-active: 214 74% 18%;
+  --provider-bg-hover: 222 18% 18%;
+  --provider-border-active: 212 100% 56%;
+  --provider-accent: 212 100% 60%;
+  --provider-accent-text: 210 25% 96%;
+  --todo-progress-pending: 220 10% 28%;
+  --todo-item-completed: 222 16% 13%;
+  --todo-item-in-progress: 222 18% 15%;
 }
 
 .dark {
-  --background: 222 28% 8%;
-  --foreground: 0 0% 96%;
-  --card: 222 24% 12%;
-  --card-foreground: 0 0% 96%;
-  --popover: 222 24% 12%;
-  --popover-foreground: 0 0% 96%;
-  --primary: 211 100% 66%;
+  --background: 224 30% 7%;
+  --foreground: 210 25% 96%;
+  --card: 224 24% 10%;
+  --card-foreground: 210 25% 96%;
+  --popover: 224 24% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 212 100% 60%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 30% 20%;
-  --secondary-foreground: 210 95% 92%;
-  --muted: 220 18% 18%;
-  --muted-foreground: 220 10% 70%;
-  --accent: 220 20% 20%;
-  --accent-foreground: 0 0% 95%;
+  --secondary: 220 18% 16%;
+  --secondary-foreground: 210 24% 92%;
+  --muted: 222 16% 14%;
+  --muted-foreground: 217 12% 68%;
+  --accent: 220 18% 18%;
+  --accent-foreground: 210 25% 96%;
   --destructive: 8 78% 54%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 14% 26%;
-  --input: 220 14% 28%;
-  --ring: 211 100% 66%;
-  --warning-subtle: 30 60% 15%;
-  --success-subtle: 211 60% 18%;
-  --provider-bg: 0 0% 15%;
-  --provider-bg-active: 211 48% 18%;
-  --provider-bg-hover: 0 0% 13%;
-  --provider-border-active: 40 30% 50%;
-  --provider-accent: 211 100% 66%;
-  --provider-accent-text: 209 100% 90%;
-  --todo-progress-pending: 0 0% 24%;
-  --todo-item-completed: 0 0% 14%;
-  --todo-item-in-progress: 0 0% 11%;
+  --border: 220 16% 24%;
+  --input: 220 16% 18%;
+  --ring: 212 100% 60%;
+  --warning-subtle: 34 70% 15%;
+  --success-subtle: 151 55% 16%;
+  --provider-bg: 222 18% 14%;
+  --provider-bg-active: 214 74% 18%;
+  --provider-bg-hover: 222 18% 18%;
+  --provider-border-active: 212 100% 56%;
+  --provider-accent: 212 100% 60%;
+  --provider-accent-text: 210 25% 96%;
+  --todo-progress-pending: 220 10% 28%;
+  --todo-item-completed: 222 16% 13%;
+  --todo-item-in-progress: 222 18% 15%;
 }
 
 /* Custom scrollbar — auto-hide, shown only while scrolling */
@@ -222,9 +222,10 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     background-image:
-      radial-gradient(1000px 580px at -10% -12%, rgba(110, 170, 255, 0.17), transparent 58%),
-      radial-gradient(860px 560px at 110% -8%, rgba(194, 224, 255, 0.18), transparent 56%),
-      linear-gradient(180deg, #f8fbff 0%, #f2f6fd 54%, #edf2fa 100%);
+      radial-gradient(980px 620px at -8% -14%, rgba(78, 138, 255, 0.26), transparent 56%),
+      radial-gradient(860px 560px at 108% -6%, rgba(126, 96, 255, 0.18), transparent 55%),
+      radial-gradient(820px 540px at 52% 112%, rgba(35, 197, 136, 0.1), transparent 58%),
+      linear-gradient(180deg, #070b14 0%, #0b1020 46%, #0d1222 100%);
     background-attachment: fixed;
   }
 
@@ -344,7 +345,7 @@ aside.macos26-sidebar,
   .macos26 body,
   body.macos26,
   .macos26 {
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   .macos26 body,
@@ -368,8 +369,8 @@ aside.macos26-sidebar,
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(900px 520px at 10% 0%, rgba(86, 160, 255, 0.06), transparent 60%),
-      radial-gradient(780px 440px at 100% 0%, rgba(148, 200, 255, 0.05), transparent 58%);
+      radial-gradient(920px 540px at 8% 0%, rgba(80, 145, 255, 0.12), transparent 60%),
+      radial-gradient(760px 460px at 100% 0%, rgba(118, 92, 255, 0.09), transparent 56%);
   }
 
   .macos26 [data-slot='card'],
@@ -390,11 +391,11 @@ aside.macos26-sidebar,
   }
 
   .macos26 [data-slot='button']:hover:not(:disabled) {
-    box-shadow: 0 12px 28px rgba(29, 74, 158, 0.16);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
   }
 
   .macos26 [data-slot='card'] {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 251, 255, 0.82));
+    background: linear-gradient(180deg, rgba(16, 22, 38, 0.9), rgba(11, 16, 29, 0.84));
   }
 
   .macos26 [data-slot='input'],
@@ -404,17 +405,17 @@ aside.macos26-sidebar,
 
   .macos26 [data-slot='input']::placeholder,
   .macos26 [data-slot='textarea']::placeholder {
-    color: hsl(var(--muted-foreground));
+    color: hsl(var(--muted-foreground) / 0.82);
   }
 
   .macos26 .border-border {
-    border-color: hsl(var(--border) / 0.9) !important;
+    border-color: hsl(var(--border) / 0.95) !important;
   }
 
   .macos26 .bg-card,
   .macos26 .bg-background,
   .macos26 .bg-popover {
-    background-color: rgba(255, 255, 255, 0.76);
+    background-color: rgba(12, 18, 31, 0.86);
   }
 
   .macos26 .text-muted-foreground {

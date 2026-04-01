@@ -232,7 +232,7 @@ export function TaskInputBar({
       )}
 
       <div
-        className={`rounded-[24px] border bg-white/72 shadow-[0_18px_44px_rgba(52,88,148,0.12)] transition-all duration-200 ease-accomplish cursor-text focus-within:border-primary/40 ${isDragOver ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'}`}
+        className={`cursor-text rounded-[24px] border bg-card/82 shadow-[0_24px_60px_rgba(0,0,0,0.28)] transition-all duration-200 ease-accomplish focus-within:border-primary/40 ${isDragOver ? 'border-primary ring-2 ring-primary/25' : 'border-border/85'}`}
         onPointerDownCapture={() => focusTextareaSafely(textareaRef.current, 0)}
         onMouseDown={() => reviveInputInteractivity()}
         onClick={() => {
@@ -284,7 +284,7 @@ export function TaskInputBar({
               {attachments.map((f) => (
                 <div
                   key={f.path}
-                  className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-white/74 px-3 py-1.5 text-xs text-foreground shadow-sm transition-colors hover:bg-white"
+                  className="group inline-flex max-w-full items-center gap-2 rounded-full border border-border/80 bg-popover/88 px-3 py-1.5 text-xs text-foreground shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition-colors hover:bg-popover"
                   title={f.path}
                 >
                   <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -295,7 +295,7 @@ export function TaskInputBar({
                   {onRemoveAttachment && (
                     <button
                       type="button"
-                      className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       onClick={(e) => {
                         e.stopPropagation();
                         onRemoveAttachment(f.path);
@@ -370,7 +370,7 @@ export function TaskInputBar({
                       ? 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'
                       : isSubmitDisabled || speechInput.isRecording
                         ? 'border-border bg-muted text-muted-foreground/60'
-                        : 'border-primary/80 bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'border-primary/80 bg-primary text-primary-foreground shadow-[0_12px_28px_rgba(32,112,255,0.34)] hover:bg-primary/90'
                   }`}
                 >
                   {isLoading ? (

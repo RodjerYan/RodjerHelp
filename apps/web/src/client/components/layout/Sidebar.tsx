@@ -48,7 +48,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex h-screen w-[284px] flex-col border-r border-border/70 bg-card/65 pt-12 macos26-surface macos26-sidebar shadow-[0_18px_42px_rgba(34,66,122,0.16)]">
+      <div className="macos26-surface macos26-sidebar flex h-screen w-[284px] flex-col border-r border-border/80 bg-[rgba(9,13,24,0.94)] pt-12 shadow-[0_24px_64px_rgba(0,0,0,0.42)]">
         {/* Action Buttons */}
         <div className="flex gap-2 border-b border-border/70 px-3 py-3">
           <Button

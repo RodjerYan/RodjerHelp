@@ -138,7 +138,7 @@ describe('Header Integration', () => {
 
       // Assert
       const homeLink = screen.getByRole('link', { name: /^главная$/i });
-      expect(hasExactClass(homeLink, 'bg-white')).toBe(true);
+      expect(hasExactClass(homeLink, 'bg-accent')).toBe(true);
     });
 
     it('should mark History link as active when on history route', () => {
@@ -151,7 +151,7 @@ describe('Header Integration', () => {
 
       // Assert
       const historyLink = screen.getByRole('link', { name: /история/i });
-      expect(hasExactClass(historyLink, 'bg-white')).toBe(true);
+      expect(hasExactClass(historyLink, 'bg-accent')).toBe(true);
     });
 
     it('should mark Settings link as active when on settings route', () => {
@@ -164,7 +164,7 @@ describe('Header Integration', () => {
 
       // Assert
       const settingsLink = screen.getByRole('link', { name: /настройки/i });
-      expect(hasExactClass(settingsLink, 'bg-white')).toBe(true);
+      expect(hasExactClass(settingsLink, 'bg-accent')).toBe(true);
     });
 
     it('should not mark Home link as active when on other routes', () => {
@@ -268,9 +268,9 @@ describe('Header Integration', () => {
       const historyLink = screen.getByRole('link', { name: /история/i });
       const settingsLink = screen.getByRole('link', { name: /настройки/i });
 
-      expect(hasExactClass(homeLink, 'bg-white')).toBe(false);
-      expect(hasExactClass(historyLink, 'bg-white')).toBe(false);
-      expect(hasExactClass(settingsLink, 'bg-white')).toBe(false);
+      expect(hasExactClass(homeLink, 'bg-accent')).toBe(false);
+      expect(hasExactClass(historyLink, 'bg-accent')).toBe(false);
+      expect(hasExactClass(settingsLink, 'bg-accent')).toBe(false);
     });
   });
 });

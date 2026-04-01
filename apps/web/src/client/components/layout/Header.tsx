@@ -9,7 +9,7 @@ export default function Header() {
   const { t } = useTranslation('common');
 
   return (
-    <header className="drag-region sticky top-0 z-50 border-b border-border/70 bg-white/72 backdrop-blur-xl">
+    <header className="drag-region sticky top-0 z-50 border-b border-border/80 bg-[rgba(8,12,24,0.82)] backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
         <Link to="/" className="no-drag flex items-center gap-2.5">
@@ -68,8 +68,8 @@ function NavLink({
       to={to}
       className={cn(
         'no-drag rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-150',
-        'text-muted-foreground hover:text-foreground hover:bg-white/80',
-        active && 'bg-white text-foreground shadow-[0_8px_20px_rgba(53,92,164,0.14)]',
+        'text-muted-foreground hover:text-foreground hover:bg-accent/80',
+        active && 'bg-accent text-foreground shadow-[0_12px_28px_rgba(0,0,0,0.28)]',
       )}
     >
       {children}

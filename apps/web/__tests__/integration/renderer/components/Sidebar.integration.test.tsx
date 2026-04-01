@@ -383,7 +383,7 @@ describe('Sidebar Integration', () => {
 
       // Assert
       const taskItem = screen.getByText('Active task').closest('[role="button"]');
-      expect(taskItem?.className).toContain('bg-white');
+      expect(taskItem?.className).toContain('bg-accent');
     });
 
     it('should not highlight inactive conversations', () => {

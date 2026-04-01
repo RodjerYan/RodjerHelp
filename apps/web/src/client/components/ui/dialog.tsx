@@ -71,7 +71,7 @@ const DialogContent = React.forwardRef<
           initial={{ opacity: 0 }}
           animate={{ opacity: isOpen ? 1 : 0 }}
           transition={{ duration: EXIT_ANIMATION_DURATION / 1000 }}
-          className="fixed inset-0 z-50 bg-[rgba(234,242,255,0.58)] backdrop-blur-[18px]"
+          className="fixed inset-0 z-50 bg-[rgba(4,8,18,0.72)] backdrop-blur-[18px]"
         />
       </DialogPrimitive.Overlay>
       <DialogPrimitive.Content
@@ -90,12 +90,12 @@ const DialogContent = React.forwardRef<
           }}
           transition={{ duration: EXIT_ANIMATION_DURATION / 1000, ease: 'easeOut' }}
           className={cn(
-            'macos26-dialog relative grid w-full max-w-lg gap-4 border border-border/80 bg-[rgba(255,255,255,0.82)] p-6 shadow-[0_30px_80px_rgba(45,74,128,0.2)] sm:rounded-[24px]',
+            'macos26-dialog relative grid w-full max-w-lg gap-4 border border-border/85 bg-[rgba(9,14,26,0.92)] p-6 shadow-[0_34px_90px_rgba(0,0,0,0.42)] sm:rounded-[24px]',
             className,
           )}
         >
           {children}
-          <DialogPrimitive.Close className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-white/85 text-muted-foreground opacity-95 transition-colors hover:bg-white hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/60 focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-card/90 text-muted-foreground opacity-95 transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/60 focus:ring-offset-2 focus:ring-offset-background disabled:pointer-events-none">
             <X className="h-4 w-4" />
             <span className="sr-only">{t('buttons.close')}</span>
           </DialogPrimitive.Close>

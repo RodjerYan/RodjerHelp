@@ -40,7 +40,7 @@ function SelectTrigger({
       type="button"
       onClick={onClick}
       data-testid={testId}
-      className={`flex w-full items-center justify-between rounded-xl border bg-white/70 px-3 py-2.5 text-left text-sm shadow-[0_8px_20px_rgba(42,74,131,0.08)] ${
+      className={`flex w-full items-center justify-between rounded-xl border bg-card/82 px-3 py-2.5 text-left text-sm shadow-[0_12px_26px_rgba(0,0,0,0.18)] ${
         error ? 'border-destructive' : 'border-input'
       }`}
     >
@@ -103,7 +103,7 @@ function SelectDropdown({
 }) {
   return (
     <motion.div
-      className="absolute z-50 mt-1 w-full rounded-xl border border-input bg-white/94 shadow-[0_16px_34px_rgba(45,76,132,0.18)]"
+      className="absolute z-50 mt-1 w-full rounded-xl border border-input bg-popover/96 shadow-[0_20px_48px_rgba(0,0,0,0.34)]"
       variants={settingsVariants.scaleDropdown}
       initial="initial"
       animate="animate"
@@ -120,7 +120,7 @@ function SelectDropdown({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full rounded-xl border border-input bg-white/90 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+            className="w-full rounded-xl border border-input bg-card/88 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
           />
         </div>
       )}
@@ -158,7 +158,7 @@ function SelectLoading({ label, loadingMessage }: { label: string; loadingMessag
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-foreground">{label}</label>
-      <div className="flex items-center gap-2.5 rounded-xl border border-input bg-white/70 px-3 py-2.5">
+      <div className="flex items-center gap-2.5 rounded-xl border border-input bg-card/82 px-3 py-2.5">
         <svg className="h-4 w-4 animate-spin text-muted-foreground" fill="none" viewBox="0 0 24 24">
           <circle
             className="opacity-25"

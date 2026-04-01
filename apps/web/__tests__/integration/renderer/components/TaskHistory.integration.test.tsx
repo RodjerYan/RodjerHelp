@@ -752,7 +752,7 @@ describe('TaskHistory Integration', () => {
 
       // Assert
       const taskCard = screen.getByText('Hover task').closest('a');
-      expect(taskCard?.className).toContain('hover:shadow-[0_14px_34px_rgba(42,72,128,0.16)]');
+      expect(taskCard?.className).toContain('hover:shadow-[0_18px_40px_rgba(0,0,0,0.32)]');
     });
 
     it('should truncate long task prompts', () => {

@@ -249,15 +249,15 @@ export function HomePage() {
         initialTab={settingsInitialTab}
       />
 
-      <div className="relative flex h-full flex-col overflow-hidden bg-accent/55">
+      <div className="relative flex h-full flex-col overflow-hidden bg-transparent">
         <div className="flex-1 overflow-y-auto p-6 pb-0">
-          <div className="w-full max-w-[720px] mx-auto flex flex-col items-center gap-3">
+          <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-3">
             <motion.h1
               data-testid="home-title"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={springs.gentle}
-              className="w-full pt-[220px] text-center text-[36px] font-semibold tracking-[-0.028em] text-foreground macos26-h1"
+              className="macos26-h1 w-full pt-[190px] text-center text-[40px] font-semibold tracking-[-0.032em] text-foreground"
             >
               {t('title')}
             </motion.h1>
@@ -303,12 +303,12 @@ export function HomePage() {
               transition={{ ...springs.gentle, delay: 0.2 }}
               className="w-full"
             >
-              <div className="flex flex-col gap-3 pt-[170px] pb-[120px]">
+              <div className="flex flex-col gap-4 pt-[148px] pb-[120px]">
                 <h2 className="text-center text-[22px] font-semibold tracking-[-0.022em] text-foreground/95">
                   {t('examplePrompts')}
                 </h2>
 
-                <div className="grid grid-cols-3 gap-4 w-full">
+                <div className="grid w-full grid-cols-3 gap-4">
                   {useCaseExamples.map((example, index) => (
                     <motion.button
                       key={index}
@@ -318,13 +318,13 @@ export function HomePage() {
                       transition={{ duration: 0.2, delay: index * 0.05 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleExampleClick(example.prompt)}
-                      className="group flex h-[164px] flex-col justify-between rounded-2xl border border-border/70 bg-white/70 px-4 py-3 text-left shadow-[0_10px_28px_rgba(44,74,132,0.1)] transition-colors hover:border-primary/35 hover:bg-white/88 active:border-primary/35"
+                      className="group flex h-[164px] flex-col justify-between rounded-2xl border border-border/80 bg-card/88 px-4 py-3 text-left shadow-[0_18px_40px_rgba(0,0,0,0.28)] transition-colors hover:border-primary/35 hover:bg-card active:border-primary/35"
                     >
-                      <div className="flex items-start justify-between w-full">
+                      <div className="flex w-full items-start justify-between">
                         <span className="w-[132px] whitespace-pre-line text-[14px] font-semibold leading-[18px] tracking-[-0.02em] text-foreground">
                           {example.title}
                         </span>
-                        <span className="shrink-0 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 group-active:translate-y-0 -scale-y-100 rotate-180">
+                        <span className="shrink-0 -scale-y-100 rotate-180 translate-y-1 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-active:translate-y-0 group-active:opacity-100">
                           <ArrowUpLeft className="w-4 h-4 text-foreground" weight="regular" />
                         </span>
                       </div>
@@ -337,7 +337,7 @@ export function HomePage() {
                         {example.icons.map((domain) => (
                           <div
                             key={domain}
-                            className="flex items-center rounded-[5.778px] bg-popover p-[3.25px] shrink-0"
+                            className="flex shrink-0 items-center rounded-[5.778px] bg-popover/92 p-[3.25px]"
                           >
                             <IntegrationIcon domain={domain} className="w-[22px] h-[22px]" />
                           </div>
@@ -351,7 +351,7 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-accent to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-background to-transparent" />
       </div>
     </>
   );

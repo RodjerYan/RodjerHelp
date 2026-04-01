@@ -26,7 +26,7 @@ function getStatusPresentation(
   if (!status.hasProfile) {
     return {
       label: t('common:vpnStatus.notConfigured'),
-      className: 'border-border/70 bg-white/72 text-muted-foreground',
+      className: 'border-border/80 bg-card/82 text-muted-foreground',
       icon: <ShieldSlash className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
@@ -34,7 +34,7 @@ function getStatusPresentation(
   if (status.state === 'connected') {
     return {
       label: t('settings:vpn.states.connected'),
-      className: 'border-emerald-500/35 bg-emerald-500/12 text-emerald-700',
+      className: 'border-emerald-500/35 bg-emerald-500/12 text-emerald-300',
       icon: <ShieldCheck className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
@@ -42,7 +42,7 @@ function getStatusPresentation(
   if (status.state === 'connecting' || status.state === 'disconnecting') {
     return {
       label: t(`settings:vpn.states.${status.state}`),
-      className: 'border-sky-500/35 bg-sky-500/12 text-sky-700',
+      className: 'border-sky-500/35 bg-sky-500/12 text-sky-300',
       icon: <ArrowsClockwise className="h-3.5 w-3.5 animate-spin" />,
     };
   }
@@ -58,14 +58,14 @@ function getStatusPresentation(
   if (status.state === 'unsupported' || !status.clientAvailable || !status.serviceAvailable) {
     return {
       label: t('common:vpnStatus.unavailable'),
-      className: 'border-border/70 bg-white/72 text-muted-foreground',
+      className: 'border-border/80 bg-card/82 text-muted-foreground',
       icon: <WarningCircle className="h-3.5 w-3.5" weight="duotone" />,
     };
   }
 
   return {
     label: t('settings:vpn.states.disconnected'),
-    className: 'border-amber-500/35 bg-amber-500/12 text-amber-700',
+    className: 'border-amber-500/35 bg-amber-500/12 text-amber-300',
     icon: <ShieldSlash className="h-3.5 w-3.5" weight="duotone" />,
   };
 }
@@ -135,7 +135,7 @@ export function VpnStatusIndicator({ className }: { className?: string }) {
       variant="outline"
       className={cn(
         'pointer-events-auto gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium tracking-[0.01em] shadow-[0_10px_20px_rgba(44,74,132,0.14)] backdrop-blur-md',
-        loading ? 'border-border/70 bg-white/72 text-muted-foreground' : presentation.className,
+        loading ? 'border-border/80 bg-card/82 text-muted-foreground' : presentation.className,
         className,
       )}
     >
