@@ -1,7 +1,7 @@
 import * as pty from 'node-pty';
 import { app, shell } from 'electron';
 import { getOpenCodeCliPath } from './electron-options';
-import { generateOpenCodeConfig } from './config-generator';
+import { generateOpenCodeConfig, getOpenCodeDataHome } from './config-generator';
 import {
   stripAnsi,
   quoteForShell,
@@ -50,6 +50,7 @@ export class OAuthBrowserFlow {
     if (process.env.OPENCODE_CONFIG) {
       env.OPENCODE_CONFIG = process.env.OPENCODE_CONFIG;
     }
+    env.XDG_DATA_HOME = getOpenCodeDataHome();
 
     const safeCwd = app.getPath('temp');
 

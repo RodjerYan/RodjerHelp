@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { VpnStatusIndicator } from './VpnStatusIndicator';
 
 export default function Header() {
   const location = useLocation();
@@ -45,10 +44,7 @@ export default function Header() {
             {t('nav.settings')}
           </NavLink>
         </nav>
-
-        <div className="flex w-40 justify-end">
-          <VpnStatusIndicator />
-        </div>
+        <div className="w-40" />
       </div>
     </header>
   );

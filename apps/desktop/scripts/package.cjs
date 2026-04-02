@@ -143,6 +143,10 @@ try {
         ? target
         : path.resolve(path.dirname(pkgPath), target);
 
+      if (fs.existsSync(pkgPath)) {
+        fs.rmSync(pkgPath, { recursive: true, force: true });
+      }
+
       if (isWindows) {
         fs.symlinkSync(absoluteTarget, pkgPath, 'junction');
       } else {

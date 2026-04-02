@@ -13,16 +13,14 @@ import { SpeechSettingsForm } from '@/components/settings/SpeechSettingsForm';
 import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { IntelligenceTab } from '@/components/settings/IntelligenceTab';
-import { VpnTab } from '@/components/settings/VpnTab';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
-import { Key, Lightning, Microphone, Info, Plugs, Brain, ShieldCheck } from '@phosphor-icons/react';
+import { Key, Lightning, Microphone, Info, Plugs, Brain } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/rodjerhelp-icon.png';
 
 const TABS = [
   { id: 'providers' as const, labelKey: 'tabs.providers', icon: Key },
-  { id: 'vpn' as const, labelKey: 'tabs.vpn', icon: ShieldCheck },
   { id: 'intelligence' as const, labelKey: 'tabs.intelligence', icon: Brain },
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
@@ -41,7 +39,7 @@ interface SettingsDialogProps {
   /**
    * Вкладка, которую показывать при открытии диалога ('providers' или 'voice')
    */
-  initialTab?: 'providers' | 'vpn' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about';
+  initialTab?: 'providers' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about';
 }
 
 export function SettingsDialog({
@@ -58,7 +56,7 @@ export function SettingsDialog({
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'vpn' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about'
+    'providers' | 'intelligence' | 'voice' | 'skills' | 'connectors' | 'about'
   >(initialTab);
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
@@ -445,7 +443,6 @@ export function SettingsDialog({
                 </div>
               )}
 
-              {activeTab === 'vpn' && <VpnTab />}
               {activeTab === 'intelligence' && <IntelligenceTab />}
 
               {/* Вкладка навыков */}

@@ -1,11 +1,13 @@
 import { app } from 'electron';
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import {
   generateConfig,
   ACCOMPLISH_AGENT_NAME,
   buildProviderConfigs,
   syncApiKeysToOpenCodeAuth as coreSyncApiKeysToOpenCodeAuth,
-  getOpenCodeAuthPath,
+  getOpenAiOauthStatus,
   isTokenExpired,
   refreshAccessToken,
 } from '@accomplish_ai/agent-core';
@@ -16,6 +18,100 @@ import { skillsManager } from '../skills';
 import { PERMISSION_API_PORT, QUESTION_API_PORT } from '@accomplish_ai/agent-core';
 
 export { ACCOMPLISH_AGENT_NAME };
+
+type OpenCodeAuthEntry = {
+  type?: string;
+  key?: string;
+  refresh?: string;
+  access?: string;
+  expires?: number;
+  accountId?: string;
+  [key: string]: unknown;
+};
+
+function shouldPreferOpenAiOauth(): boolean {
+  const storage = getStorage();
+  const provider = storage.getConnectedProvider('openai');
+  if (
+    provider?.connectionStatus === 'connected' &&
+    provider.credentials?.type === 'oauth' &&
+    provider.credentials.oauthProvider === 'chatgpt'
+  ) {
+    return true;
+  }
+
+  return getOpenAiOauthStatus().connected;
+}
+
+function getLegacyOpenCodeDataHome(): string {
+  return path.join(os.homedir(), '.local', 'share');
+}
+
+function getAppOpenCodeDataHome(): string {
+  return app.getPath('userData');
+}
+
+function getLegacyOpenCodeAuthPath(): string {
+  return path.join(getLegacyOpenCodeDataHome(), 'opencode', 'auth.json');
+}
+
+function getAppOpenCodeAuthPath(): string {
+  return path.join(getAppOpenCodeDataHome(), 'opencode', 'auth.json');
+}
+
+function readOpenCodeAuthFile(authPath: string): Record<string, OpenCodeAuthEntry> {
+  if (!fs.existsSync(authPath)) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(authPath, 'utf-8')) as Record<string, OpenCodeAuthEntry>;
+  } catch {
+    return {};
+  }
+}
+
+function writeOpenCodeAuthFile(authPath: string, auth: Record<string, OpenCodeAuthEntry>): void {
+  const authDir = path.dirname(authPath);
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
+
+  fs.writeFileSync(authPath, JSON.stringify(auth, null, 2));
+}
+
+function hasUsableOpenAiOauth(entry: OpenCodeAuthEntry | undefined): boolean {
+  return (
+    entry?.type === 'oauth' && typeof entry.refresh === 'string' && entry.refresh.trim().length > 0
+  );
+}
+
+function syncLegacyOpenAiOauthToAppAuth(): void {
+  const legacyAuth = readOpenCodeAuthFile(getLegacyOpenCodeAuthPath());
+  const legacyOpenAi = legacyAuth.openai;
+  if (!hasUsableOpenAiOauth(legacyOpenAi)) {
+    return;
+  }
+
+  const appAuthPath = getAppOpenCodeAuthPath();
+  const appAuth = readOpenCodeAuthFile(appAuthPath);
+  const currentOpenAi = appAuth.openai;
+  const nextOpenAi = {
+    type: 'oauth',
+    refresh: legacyOpenAi?.refresh,
+    access: legacyOpenAi?.access,
+    expires: legacyOpenAi?.expires,
+    accountId: legacyOpenAi?.accountId,
+  };
+
+  if (JSON.stringify(currentOpenAi) === JSON.stringify(nextOpenAi)) {
+    return;
+  }
+
+  appAuth.openai = nextOpenAi;
+  writeOpenCodeAuthFile(appAuthPath, appAuth);
+  console.log('[OpenCode Auth] Mirrored OpenAI OAuth session into app auth.json');
+}
 
 /**
  * Returns the path to MCP tools directory.
@@ -42,6 +138,24 @@ export function getOpenCodeConfigDir(): string {
 }
 
 /**
+ * Returns the OpenCode data home used by the desktop app.
+ *
+ * We intentionally isolate OpenCode runtime data inside the app's userData
+ * directory so stale global OAuth/session state from other OpenCode installs
+ * cannot leak into RodjerHelp runs.
+ */
+export function getOpenCodeDataHome(): string {
+  return getAppOpenCodeDataHome();
+}
+
+/**
+ * Returns the app-specific path to OpenCode auth.json.
+ */
+export function getOpenCodeAuthPath(): string {
+  return getAppOpenCodeAuthPath();
+}
+
+/**
  * Generates the OpenCode configuration file.
  *
  * @param azureFoundryToken - Optional Azure Foundry token for Entra ID auth
@@ -63,13 +177,19 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
 
   // Use the extracted buildProviderConfigs from core package
   const { providerConfigs, enabledProviders, modelOverride } = await buildProviderConfigs({
-    getApiKey,
+    getApiKey: (providerId) => {
+      if (providerId === 'openai' && shouldPreferOpenAiOauth()) {
+        return null;
+      }
+
+      return getApiKey(providerId);
+    },
     azureFoundryToken,
   });
 
   // Inject store:false for OpenAI to prevent 403 errors
   // with project-scoped keys (sk-proj-...) that lack /v1/chat/completions storage permission
-  const openAiApiKey = getApiKey('openai');
+  const openAiApiKey = shouldPreferOpenAiOauth() ? null : getApiKey('openai');
   if (openAiApiKey) {
     const existingOpenAi = providerConfigs.find((p) => p.id === 'openai');
     if (existingOpenAi) {
@@ -165,9 +285,6 @@ export function getOpenCodeConfigPath(): string {
   return path.join(app.getPath('userData'), 'opencode', 'opencode.json');
 }
 
-// Re-export getOpenCodeAuthPath from core for consumers that import from this module
-export { getOpenCodeAuthPath };
-
 /**
  * Syncs API keys to the OpenCode auth.json file.
  * Uses Electron-specific path resolution and secure storage access.
@@ -175,6 +292,15 @@ export { getOpenCodeAuthPath };
 export async function syncApiKeysToOpenCodeAuth(): Promise<void> {
   const apiKeys = await getAllApiKeys();
   const authPath = getOpenCodeAuthPath();
+  if (shouldPreferOpenAiOauth()) {
+    syncLegacyOpenAiOauthToAppAuth();
+  }
+  const effectiveApiKeys = shouldPreferOpenAiOauth()
+    ? {
+        ...apiKeys,
+        openai: null,
+      }
+    : apiKeys;
 
-  await coreSyncApiKeysToOpenCodeAuth(authPath, apiKeys);
+  await coreSyncApiKeysToOpenCodeAuth(authPath, effectiveApiKeys);
 }

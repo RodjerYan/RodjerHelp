@@ -44,6 +44,8 @@ let mockConnectorTokens: Record<
   { accessToken: string; refreshToken?: string; tokenType: string; expiresAt?: number }
 > = {};
 const mockSetConnectorStatus = vi.fn();
+const mockGetConnectedProvider = vi.fn(() => null);
+const mockGetOpenAiOauthStatus = vi.fn(() => ({ connected: false }));
 
 // Mock only the external electron module
 const mockApp = {
@@ -93,6 +95,7 @@ vi.mock('@accomplish_ai/agent-core', async () => {
 
     // syncApiKeysToOpenCodeAuth - syncs API keys to auth.json
     syncApiKeysToOpenCodeAuth: vi.fn(() => Promise.resolve()),
+    getOpenAiOauthStatus: mockGetOpenAiOauthStatus,
     isTokenExpired: vi.fn(() => false),
     refreshAccessToken: vi.fn(() =>
       Promise.resolve({
@@ -274,6 +277,7 @@ vi.mock('@main/store/storage', () => ({
   getStorage: vi.fn(() => ({
     getEnabledConnectors: () => mockEnabledConnectors,
     getConnectorTokens: (connectorId: string) => mockConnectorTokens[connectorId] ?? null,
+    getConnectedProvider: mockGetConnectedProvider,
     storeConnectorTokens: (connectorId: string, tokens: unknown) => {
       mockConnectorTokens[connectorId] = tokens as {
         accessToken: string;
@@ -320,6 +324,10 @@ describe('OpenCode Config Generator Integration', () => {
     mockEnabledConnectors = [];
     mockConnectorTokens = {};
     mockSetConnectorStatus.mockReset();
+    mockGetConnectedProvider.mockReset();
+    mockGetConnectedProvider.mockReturnValue(null);
+    mockGetOpenAiOauthStatus.mockReset();
+    mockGetOpenAiOauthStatus.mockReturnValue({ connected: false });
 
     // Create real temp directories for each test
     tempUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-config-test-userData-'));
@@ -583,6 +591,57 @@ describe('OpenCode Config Generator Integration', () => {
 
       // Assert
       expect(result).toBe(path.join(tempUserDataDir, 'opencode', 'opencode.json'));
+    });
+  });
+
+  describe('syncApiKeysToOpenCodeAuth()', () => {
+    it('does not overwrite OpenAI OAuth auth when provider is connected via OAuth', async () => {
+      mockGetConnectedProvider.mockImplementation((providerId: string) =>
+        providerId === 'openai'
+          ? {
+              connectionStatus: 'connected',
+              credentials: { type: 'oauth', oauthProvider: 'chatgpt' },
+            }
+          : null,
+      );
+
+      const { getAllApiKeys } = await import('@main/store/secureStorage');
+      vi.mocked(getAllApiKeys).mockResolvedValue({
+        openai: 'sk-test',
+        deepseek: 'deepseek-test',
+      });
+
+      const { syncApiKeysToOpenCodeAuth, getOpenCodeAuthPath } =
+        await import('@main/opencode/config-generator');
+      await syncApiKeysToOpenCodeAuth();
+
+      const { syncApiKeysToOpenCodeAuth: coreSyncApiKeysToOpenCodeAuth } =
+        await import('@accomplish_ai/agent-core');
+
+      expect(coreSyncApiKeysToOpenCodeAuth).toHaveBeenCalledWith(getOpenCodeAuthPath(), {
+        openai: null,
+        deepseek: 'deepseek-test',
+      });
+    });
+
+    it('prefers a live OpenAI OAuth session over a stored API key', async () => {
+      mockGetOpenAiOauthStatus.mockReturnValue({ connected: true });
+
+      const { getAllApiKeys } = await import('@main/store/secureStorage');
+      vi.mocked(getAllApiKeys).mockResolvedValue({
+        openai: 'sk-test',
+      });
+
+      const { syncApiKeysToOpenCodeAuth, getOpenCodeAuthPath } =
+        await import('@main/opencode/config-generator');
+      await syncApiKeysToOpenCodeAuth();
+
+      const { syncApiKeysToOpenCodeAuth: coreSyncApiKeysToOpenCodeAuth } =
+        await import('@accomplish_ai/agent-core');
+
+      expect(coreSyncApiKeysToOpenCodeAuth).toHaveBeenCalledWith(getOpenCodeAuthPath(), {
+        openai: null,
+      });
     });
   });
 

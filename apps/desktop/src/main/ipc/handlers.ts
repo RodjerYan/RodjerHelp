@@ -105,7 +105,6 @@ import {
   connectVpn,
   deleteStoredVpnProfile,
   disconnectVpn,
-  ensureVpnReadyForTasks,
   getStoredVpnProfileSnapshot,
   getVpnStatus,
   saveVpnProfileFromRawConfig,
@@ -685,10 +684,6 @@ export function registerIPCHandlers(): void {
       );
     }
 
-    if (!isMockTaskEventsEnabled()) {
-      await ensureVpnReadyForTasks(storage);
-    }
-
     if (!permissionApiInitialized) {
       initPermissionApi(
         window,
@@ -866,10 +861,6 @@ export function registerIPCHandlers(): void {
         throw new Error(
           'No provider is ready. Please connect a provider and select a model in Settings.',
         );
-      }
-
-      if (!isMockTaskEventsEnabled()) {
-        await ensureVpnReadyForTasks(storage);
       }
 
       const taskId = validatedExistingTaskId || createTaskId();

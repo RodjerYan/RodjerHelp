@@ -28,6 +28,7 @@ import { getAllApiKeys, getBedrockCredentials, getApiKey } from '../store/secure
 import {
   generateOpenCodeConfig,
   getMcpToolsPath,
+  getOpenCodeDataHome,
   syncApiKeysToOpenCodeAuth,
 } from './config-generator';
 import { getExtendedNodePath } from '../utils/system-path';
@@ -37,6 +38,20 @@ const VERTEX_SA_KEY_FILENAME = 'vertex-sa-key.json';
 const BROWSER_RECOVERY_COOLDOWN_MS = 10000;
 let browserEnsurePromise: Promise<void> | null = null;
 let lastBrowserRecoveryAt = 0;
+
+function shouldPreferOpenAiOauth(): boolean {
+  const storage = getStorage();
+  const provider = storage.getConnectedProvider('openai');
+  if (
+    provider?.connectionStatus === 'connected' &&
+    provider.credentials?.type === 'oauth' &&
+    provider.credentials.oauthProvider === 'chatgpt'
+  ) {
+    return true;
+  }
+
+  return getOpenAiOauthStatus().connected;
+}
 
 /**
  * Removes the Vertex AI service account key file from disk if it exists.
@@ -117,6 +132,8 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   // Start with base environment
   let env: NodeJS.ProcessEnv = { ...process.env };
   const bundledNode = getBundledNodePaths();
+  const openAiOauthConnected = shouldPreferOpenAiOauth();
+  const openCodeDataHome = getOpenCodeDataHome();
 
   if (!bundledNode) {
     throw new Error(
@@ -142,6 +159,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   }
 
   env.ELECTRON_RUN_AS_NODE = '1';
+  env.XDG_DATA_HOME = openCodeDataHome;
   logBundledNodeInfo();
 
   const delimiter = process.platform === 'win32' ? ';' : ':';
@@ -161,11 +179,19 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
 
   // Gather configuration for the reusable environment builder
   const apiKeys = await getAllApiKeys();
+  const effectiveApiKeys = openAiOauthConnected
+    ? {
+        ...apiKeys,
+        openai: null,
+      }
+    : apiKeys;
   const bedrockCredentials = getBedrockCredentials() as BedrockCredentials | null;
 
   // Determine OpenAI base URL
   const storage = getStorage();
-  const configuredOpenAiBaseUrl = apiKeys.openai ? storage.getOpenAiBaseUrl().trim() : undefined;
+  const configuredOpenAiBaseUrl = effectiveApiKeys.openai
+    ? storage.getOpenAiBaseUrl().trim()
+    : undefined;
 
   // Determine Ollama host
   const activeModel = storage.getActiveProviderModel();
@@ -197,7 +223,7 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
 
   // Build environment configuration
   const envConfig: EnvironmentConfig = {
-    apiKeys,
+    apiKeys: effectiveApiKeys,
     bedrockCredentials: bedrockCredentials || undefined,
     vertexCredentials,
     vertexServiceAccountKeyPath,
@@ -210,9 +236,30 @@ export async function buildEnvironment(taskId: string): Promise<NodeJS.ProcessEn
   // Use the core function to set API keys and credentials
   env = buildOpenCodeEnvironment(env, envConfig);
 
+  if (openAiOauthConnected) {
+    delete env.OPENAI_API_KEY;
+  }
+
+  if (effectiveApiKeys.openai) {
+    const oauthEnvVars = [
+      'OPENAI_ACCESS_TOKEN',
+      'OPENAI_REFRESH_TOKEN',
+      'OPENAI_AUTH_TOKEN',
+      'OPENAI_SESSION_TOKEN',
+      'CHATGPT_ACCESS_TOKEN',
+      'CHATGPT_REFRESH_TOKEN',
+    ] as const;
+
+    for (const envVar of oauthEnvVars) {
+      delete env[envVar];
+    }
+  }
+
   if (taskId) {
     console.log('[OpenCode CLI] Task ID in environment:', taskId);
   }
+
+  console.log('[OpenCode CLI] XDG_DATA_HOME:', env.XDG_DATA_HOME);
 
   return env;
 }
@@ -232,9 +279,9 @@ export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise
     effectiveSelectedModel?.provider === 'openai' &&
     /-codex$/i.test(effectiveSelectedModel.model)
   ) {
+    const openAiOauthConnected = shouldPreferOpenAiOauth();
     const hasOpenAiApiKey = Boolean(getApiKey('openai')?.trim());
-    const oauthStatus = getOpenAiOauthStatus();
-    if (hasOpenAiApiKey || !oauthStatus.connected) {
+    if (!openAiOauthConnected && hasOpenAiApiKey) {
       const normalizedModel = effectiveSelectedModel.model.replace(/-codex$/i, '');
       console.warn(
         `[OpenCode CLI] Selected OpenAI Codex model is not compatible with the current desktop auth flow. Falling back to API-compatible model: ${normalizedModel}`,
