@@ -49,7 +49,7 @@ export function ProviderGrid({
     const query = search.toLowerCase();
     return PROVIDER_ORDER.filter((id) => {
       const meta = PROVIDER_META[id];
-      return meta.name.toLowerCase().includes(query);
+      return meta?.name.toLowerCase().includes(query) ?? false;
     });
   }, [search]);
 

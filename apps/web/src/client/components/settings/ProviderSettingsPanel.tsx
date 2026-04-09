@@ -37,6 +37,14 @@ export function ProviderSettingsPanel({
   const { t } = useTranslation('settings');
   const meta = PROVIDER_META[providerId];
 
+  if (!meta) {
+    return (
+      <div className="min-h-[260px] flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">{t('providers.unknownType')}</div>
+      </div>
+    );
+  }
+
   // Render form content based on provider category
   const renderForm = () => {
     // Handle Z.AI separately (has region selector)

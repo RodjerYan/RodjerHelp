@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "private": true,
   "type": "module",
   "description": "RodjerHelp Desktop App",
@@ -116,6 +116,9 @@
       "node_modules/json-schema-typed/**",
       "node_modules/atomically/**",
       "node_modules/debounce-fn/**",
+      "node_modules/mimic-fn/**",
+      "node_modules/graceful-fs/**",
+      "node_modules/better-sqlite3/**",
       "!node_modules/@accomplish_ai/**",
       "!node_modules/opencode-linux-*/**"
     ],
