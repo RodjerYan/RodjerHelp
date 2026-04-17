@@ -50,18 +50,18 @@ jobs:
       - name: Ensure release assets exist
         shell: pwsh
         run: |
-          Get-ChildItem .\apps\desktop\release
-          if (-not (Test-Path .\apps\desktop\release\latest.yml)) {
-            throw "latest.yml not found in apps/desktop/release"
+          Get-ChildItem .\apps\desktop\release-package
+          if (-not (Test-Path .\apps\desktop\release-package\latest.yml)) {
+            throw "latest.yml not found in apps/desktop/release-package"
           }
 
       - name: Publish GitHub Release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            apps/desktop/release/*.exe
-            apps/desktop/release/latest.yml
-            apps/desktop/release/*.blockmap
+            apps/desktop/release-package/*.exe
+            apps/desktop/release-package/latest.yml
+            apps/desktop/release-package/*.blockmap
           draft: false
           prerelease: false
           generate_release_notes: true
