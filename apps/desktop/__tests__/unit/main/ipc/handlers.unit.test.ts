@@ -644,6 +644,44 @@ describe('IPC Handlers Integration', () => {
       }
     });
 
+    it('chat:read-files should retry transient spreadsheet access errors and support unicode paths', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-xlsx-retry-'));
+      const unicodeDir = path.join(tempDir, 'Рабочий стол');
+      const filePath = path.join(unicodeDir, 'sales.xlsx');
+      const readFileSpy = vi.spyOn(fs.promises, 'readFile');
+
+      try {
+        fs.mkdirSync(unicodeDir, { recursive: true });
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet([
+          ['Region', 'Sales'],
+          ['Moscow', 123],
+          ['SPB', 456],
+        ]);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Summary');
+        XLSX.writeFile(workbook, filePath);
+
+        const transientError = Object.assign(new Error('resource busy'), {
+          code: 'EBUSY',
+        });
+        readFileSpy.mockRejectedValueOnce(transientError);
+
+        const result = (await invokeHandler('chat:read-files', [filePath])) as Array<{
+          text?: string;
+          error?: string;
+        }>;
+
+        expect(result).toHaveLength(1);
+        expect(result[0]?.error).toBeUndefined();
+        expect(result[0]?.text).toContain('[Spreadsheet workbook]');
+        expect(result[0]?.text).toContain('Sheet: Summary');
+        expect(result[0]?.text).toContain('Moscow | 123');
+      } finally {
+        readFileSpy.mockRestore();
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
     it('chat:read-files should extract PDF text attachments', async () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rodjerhelp-pdf-'));
       const filePath = path.join(tempDir, 'report.pdf');

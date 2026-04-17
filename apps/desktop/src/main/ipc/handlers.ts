@@ -129,6 +129,17 @@ const MAX_SPREADSHEET_ROWS_PER_SHEET = 60;
 const MAX_SPREADSHEET_COLUMNS_PER_ROW = 20;
 const MAX_PRESENTATION_SLIDES = 12;
 const MAX_IMAGE_OCR_BYTES = 15 * 1024 * 1024;
+const ATTACHMENT_READ_RETRY_ATTEMPTS = 5;
+const ATTACHMENT_READ_RETRY_BASE_DELAY_MS = 250;
+const RETRIABLE_ATTACHMENT_ERROR_CODES = new Set([
+  'EACCES',
+  'EBUSY',
+  'EMFILE',
+  'ENFILE',
+  'ENOENT',
+  'EPERM',
+  'UNKNOWN',
+]);
 type SpreadsheetCell = string | number | boolean | Date | null | undefined;
 type SpreadsheetRow = SpreadsheetCell[];
 type SupportedTextEncoding = 'utf8' | 'utf16le' | 'utf16be';
@@ -164,6 +175,80 @@ function isImageAttachment(filePath: string): boolean {
   );
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return String(error ?? '');
+}
+
+function isRetriableAttachmentError(error: unknown): boolean {
+  const maybeErr = error as Partial<NodeJS.ErrnoException> | null | undefined;
+  const code = typeof maybeErr?.code === 'string' ? maybeErr.code : '';
+  if (code && RETRIABLE_ATTACHMENT_ERROR_CODES.has(code)) {
+    return true;
+  }
+
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    /cannot access file/.test(message) ||
+    /being used by another process/.test(message) ||
+    /cloud file provider/.test(message) ||
+    /resource busy/.test(message) ||
+    /access is denied/.test(message) ||
+    /end of central directory/.test(message) ||
+    /invalid zip/.test(message) ||
+    /bad zip/.test(message)
+  );
+}
+
+function getAttachmentFailureMessage(filePath: string, error: unknown): string {
+  const message = getErrorMessage(error).trim();
+  if (!message) {
+    return `Cannot access file ${filePath}`;
+  }
+
+  if (isRetriableAttachmentError(error)) {
+    return `Cannot access file ${filePath}`;
+  }
+
+  return message;
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withAttachmentReadRetries<T>(
+  filePath: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= ATTACHMENT_READ_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isRetriableAttachmentError(error) || attempt === ATTACHMENT_READ_RETRY_ATTEMPTS) {
+        throw error;
+      }
+
+      const waitMs = ATTACHMENT_READ_RETRY_BASE_DELAY_MS * attempt;
+      console.warn(
+        `[Attachments] Retry ${attempt}/${ATTACHMENT_READ_RETRY_ATTEMPTS} for "${filePath}": ${getErrorMessage(error)}`,
+      );
+      await delay(waitMs);
+    }
+  }
+
+  throw (
+    (lastError instanceof Error ? lastError : null) ??
+    new Error(`Cannot access file ${filePath}`)
+  );
+}
+
 function stringifySpreadsheetCell(value: unknown): string {
   if (value === null || value === undefined) {
     return '';
@@ -172,8 +257,10 @@ function stringifySpreadsheetCell(value: unknown): string {
   return String(value).replace(/\r?\n/g, ' ').trim();
 }
 
-function buildSpreadsheetPreview(filePath: string): string {
-  const workbook = XLSX.readFile(filePath, {
+async function buildSpreadsheetPreview(filePath: string): Promise<string> {
+  const spreadsheetBuffer = await fs.promises.readFile(filePath);
+  const workbook = XLSX.read(spreadsheetBuffer, {
+    type: 'buffer',
     cellDates: true,
     dense: true,
   });
@@ -544,7 +631,7 @@ async function buildAttachmentPreview(
 ): Promise<AttachmentPreviewResult> {
   if (isSpreadsheetAttachment(filePath)) {
     return {
-      text: buildSpreadsheetPreview(filePath),
+      text: await buildSpreadsheetPreview(filePath),
     };
   }
 
@@ -1938,8 +2025,10 @@ export function registerIPCHandlers(): void {
 
     for (const filePath of safePaths) {
       try {
-        const stat = fs.statSync(filePath);
-        const preview = await buildAttachmentPreview(filePath, MAX_ATTACHMENT_TEXT_BYTES);
+        const stat = await withAttachmentReadRetries(filePath, () => fs.promises.stat(filePath));
+        const preview = await withAttachmentReadRetries(filePath, () =>
+          buildAttachmentPreview(filePath, MAX_ATTACHMENT_TEXT_BYTES),
+        );
         files.push({
           path: filePath,
           name: path.basename(filePath),
@@ -1951,7 +2040,7 @@ export function registerIPCHandlers(): void {
           path: filePath,
           name: path.basename(filePath),
           size: 0,
-          error: error instanceof Error ? error.message : 'Failed to read file',
+          error: getAttachmentFailureMessage(filePath, error),
         });
       }
     }

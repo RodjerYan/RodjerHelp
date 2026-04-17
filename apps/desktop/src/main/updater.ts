@@ -23,6 +23,10 @@ let initialized = false;
 let checking = false;
 let currentStatus: UpdateStatusState = { status: 'idle' };
 let mainWindowGetter: (() => BrowserWindow | null) | null = null;
+let periodicCheckTimer: NodeJS.Timeout | null = null;
+
+const STARTUP_CHECK_DELAY_MS = 15000;
+const PERIODIC_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 function getUpdateConfigPath(): string {
   return path.join(process.resourcesPath, 'app-update.yml');
@@ -80,39 +84,20 @@ async function showError(title: string, message: string, detail?: string): Promi
   });
 }
 
-async function promptDownload(info: UpdateInfo): Promise<void> {
-  const win = getMainWindow();
-  const result = await showMessage(win, {
-    type: 'info',
-    title: 'Доступно обновление',
-    message: `Найдена новая версия RodjerHelp ${info.version}.`,
-    detail: 'Скачать и установить обновление после завершения текущей работы?',
-    buttons: ['Скачать', 'Позже'],
-    defaultId: 0,
-    cancelId: 1,
-  });
-
-  if (result.response === 0) {
-    emitStatus({ status: 'downloading', version: info.version, progress: 0 });
-    void autoUpdater.downloadUpdate();
+function schedulePeriodicChecks(): void {
+  if (periodicCheckTimer) {
+    return;
   }
+
+  periodicCheckTimer = setInterval(() => {
+    void triggerUpdateCheck(false);
+  }, PERIODIC_CHECK_INTERVAL_MS);
+
+  periodicCheckTimer.unref?.();
 }
 
-async function promptInstall(info: UpdateInfo): Promise<void> {
-  const win = getMainWindow();
-  const result = await showMessage(win, {
-    type: 'info',
-    title: 'Обновление готово',
-    message: `Версия ${info.version} уже скачана.`,
-    detail: 'Перезапустить приложение и установить обновление сейчас?',
-    buttons: ['Перезапустить и обновить', 'Позже'],
-    defaultId: 0,
-    cancelId: 1,
-  });
-
-  if (result.response === 0) {
-    setImmediate(() => autoUpdater.quitAndInstall());
-  }
+function installUpdate(): void {
+  setImmediate(() => autoUpdater.quitAndInstall());
 }
 
 export async function triggerUpdateCheck(manual = false): Promise<UpdateStatusState> {
@@ -181,7 +166,7 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
     return;
   }
 
-  autoUpdater.autoDownload = false;
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('checking-for-update', () => {
@@ -190,7 +175,7 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     emitStatus({ status: 'available', version: info.version });
-    void promptDownload(info);
+    emitStatus({ status: 'downloading', version: info.version, progress: 0 });
   });
 
   autoUpdater.on('update-not-available', (info: UpdateInfo) => {
@@ -211,8 +196,13 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
   });
 
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-    emitStatus({ status: 'downloaded', version: info.version, progress: 100 });
-    void promptInstall(info);
+    emitStatus({
+      status: 'downloaded',
+      version: info.version,
+      progress: 100,
+      message: 'Обновление скачано. Выполняется автоматическая установка.',
+    });
+    installUpdate();
   });
 
   autoUpdater.on('error', (error: Error) => {
@@ -223,8 +213,17 @@ export function initializeAutoUpdater(getWindow: () => BrowserWindow | null): vo
     if (!app.isPackaged) {
       return;
     }
+
+    schedulePeriodicChecks();
     setTimeout(() => {
       void triggerUpdateCheck(false);
-    }, 15000);
+    }, STARTUP_CHECK_DELAY_MS);
+  });
+
+  app.on('before-quit', () => {
+    if (periodicCheckTimer) {
+      clearInterval(periodicCheckTimer);
+      periodicCheckTimer = null;
+    }
   });
 }
