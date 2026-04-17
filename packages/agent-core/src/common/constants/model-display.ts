@@ -8,6 +8,7 @@ export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'claude-sonnet-4': 'Claude Sonnet 4',
   'claude-haiku-3-5': 'Claude Haiku 3.5',
   // OpenAI
+  'gpt-5.4': 'GPT 5.4',
   'gpt-5.2': 'GPT 5.2',
   'gpt-5.2-codex': 'GPT 5.2 Codex',
   'gpt-5.1-codex-max': 'GPT 5.1 Codex Max',

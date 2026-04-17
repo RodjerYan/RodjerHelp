@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockStorage = {
   getActiveProviderModel: vi.fn(),
   getSelectedModel: vi.fn(),
+  setSelectedModel: vi.fn(),
   getConnectedProvider: vi.fn(),
+  updateProviderModel: vi.fn(),
   getOpenAiBaseUrl: vi.fn(() => ''),
 };
 
@@ -91,10 +93,35 @@ describe('electron-options buildCliArgs', () => {
     mockGetOpenAiOauthStatus.mockReturnValue({ connected: false });
   });
 
-  it('falls back from OpenAI codex model to API-compatible model without OAuth', async () => {
+  it('keeps OpenAI codex model when OAuth is not connected', async () => {
     mockStorage.getSelectedModel.mockReturnValue({
       provider: 'openai',
       model: 'openai/gpt-5.2-codex',
+    });
+
+    const { buildCliArgs } = await import('@main/opencode/electron-options');
+    await buildCliArgs({ prompt: 'hello' } as never, 'task-1');
+
+    expect(mockCoreBuildCliArgs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectedModel: {
+          provider: 'openai',
+          model: 'openai/gpt-5.2-codex',
+        },
+      }),
+    );
+  });
+
+  it('falls back from OpenAI codex model when OAuth is connected', async () => {
+    mockStorage.getSelectedModel.mockReturnValue({
+      provider: 'openai',
+      model: 'openai/gpt-5.2-codex',
+    });
+    mockGetOpenAiOauthStatus.mockReturnValue({ connected: true });
+    mockStorage.getConnectedProvider.mockReturnValue({
+      connectionStatus: 'connected',
+      selectedModelId: 'openai/gpt-5.2-codex',
+      credentials: { type: 'oauth', oauthProvider: 'chatgpt' },
     });
 
     const { buildCliArgs } = await import('@main/opencode/electron-options');
@@ -108,9 +135,14 @@ describe('electron-options buildCliArgs', () => {
         },
       }),
     );
+    expect(mockStorage.setSelectedModel).toHaveBeenCalledWith({
+      provider: 'openai',
+      model: 'openai/gpt-5.2',
+    });
+    expect(mockStorage.updateProviderModel).toHaveBeenCalledWith('openai', 'openai/gpt-5.2');
   });
 
-  it('keeps OpenAI codex model when OAuth is connected', async () => {
+  it('falls back from OpenAI codex model when provider is connected via OAuth even if API key exists', async () => {
     mockStorage.getSelectedModel.mockReturnValue({
       provider: 'openai',
       model: 'openai/gpt-5.2-codex',
@@ -118,32 +150,7 @@ describe('electron-options buildCliArgs', () => {
     mockGetOpenAiOauthStatus.mockReturnValue({ connected: true });
     mockStorage.getConnectedProvider.mockReturnValue({
       connectionStatus: 'connected',
-      credentials: { type: 'oauth', oauthProvider: 'chatgpt' },
-    });
-    const { getApiKey } = await import('@main/store/secureStorage');
-    vi.mocked(getApiKey).mockReturnValueOnce(null);
-
-    const { buildCliArgs } = await import('@main/opencode/electron-options');
-    await buildCliArgs({ prompt: 'hello' } as never, 'task-1');
-
-    expect(mockCoreBuildCliArgs).toHaveBeenCalledWith(
-      expect.objectContaining({
-        selectedModel: {
-          provider: 'openai',
-          model: 'openai/gpt-5.2-codex',
-        },
-      }),
-    );
-  });
-
-  it('keeps OpenAI codex model when provider is connected via OAuth even if API key exists', async () => {
-    mockStorage.getSelectedModel.mockReturnValue({
-      provider: 'openai',
-      model: 'openai/gpt-5.2-codex',
-    });
-    mockGetOpenAiOauthStatus.mockReturnValue({ connected: true });
-    mockStorage.getConnectedProvider.mockReturnValue({
-      connectionStatus: 'connected',
+      selectedModelId: 'openai/gpt-5.2-codex',
       credentials: { type: 'oauth', oauthProvider: 'chatgpt' },
     });
 
@@ -154,13 +161,17 @@ describe('electron-options buildCliArgs', () => {
       expect.objectContaining({
         selectedModel: {
           provider: 'openai',
-          model: 'openai/gpt-5.2-codex',
+          model: 'openai/gpt-5.2',
         },
       }),
     );
+    expect(mockStorage.setSelectedModel).toHaveBeenCalledWith({
+      provider: 'openai',
+      model: 'openai/gpt-5.2',
+    });
   });
 
-  it('keeps OpenAI codex model when a live OAuth session exists even without provider oauth metadata', async () => {
+  it('falls back from OpenAI codex model when a live OAuth session exists even without provider oauth metadata', async () => {
     mockStorage.getSelectedModel.mockReturnValue({
       provider: 'openai',
       model: 'openai/gpt-5.2-codex',
@@ -178,7 +189,7 @@ describe('electron-options buildCliArgs', () => {
       expect.objectContaining({
         selectedModel: {
           provider: 'openai',
-          model: 'openai/gpt-5.2-codex',
+          model: 'openai/gpt-5.2',
         },
       }),
     );

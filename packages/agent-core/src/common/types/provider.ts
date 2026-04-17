@@ -198,7 +198,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'OpenAI',
     requiresApiKey: true,
     apiKeyEnvVar: 'OPENAI_API_KEY',
-    defaultModelId: 'openai/gpt-5.2',
+    defaultModelId: 'openai/gpt-5.4',
     modelsEndpoint: {
       url: 'https://api.openai.com/v1/models',
       authStyle: 'bearer',

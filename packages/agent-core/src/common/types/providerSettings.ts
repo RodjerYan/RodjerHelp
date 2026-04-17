@@ -252,7 +252,7 @@ export function getActiveProvider(
  */
 export const DEFAULT_MODELS: Partial<Record<ProviderId, string>> = {
   anthropic: 'anthropic/claude-opus-4-5',
-  openai: 'openai/gpt-5.2',
+  openai: 'openai/gpt-5.4',
   google: 'google/gemini-3-pro-preview',
   xai: 'xai/grok-4',
   deepseek: 'deepseek/deepseek-chat',

@@ -280,16 +280,32 @@ export async function buildCliArgs(config: TaskConfig, _taskId: string): Promise
     /-codex$/i.test(effectiveSelectedModel.model)
   ) {
     const openAiOauthConnected = shouldPreferOpenAiOauth();
-    const hasOpenAiApiKey = Boolean(getApiKey('openai')?.trim());
-    if (!openAiOauthConnected && hasOpenAiApiKey) {
-      const normalizedModel = effectiveSelectedModel.model.replace(/-codex$/i, '');
+    if (openAiOauthConnected) {
+      const originalModel = effectiveSelectedModel.model;
+      const normalizedModel = originalModel.replace(/-codex$/i, '');
       console.warn(
-        `[OpenCode CLI] Selected OpenAI Codex model is not compatible with the current desktop auth flow. Falling back to API-compatible model: ${normalizedModel}`,
+        `[OpenCode CLI] Selected OpenAI Codex model is not supported with ChatGPT OAuth. Falling back to API-compatible model: ${normalizedModel}`,
       );
       effectiveSelectedModel = {
         ...effectiveSelectedModel,
         model: normalizedModel,
       };
+
+      const persistedSelectedModel = storage.getSelectedModel();
+      if (
+        persistedSelectedModel?.provider === 'openai' &&
+        persistedSelectedModel.model === originalModel
+      ) {
+        storage.setSelectedModel({
+          ...persistedSelectedModel,
+          model: normalizedModel,
+        });
+      }
+
+      const openAiProvider = storage.getConnectedProvider('openai');
+      if (openAiProvider?.selectedModelId === originalModel) {
+        storage.updateProviderModel('openai', normalizedModel);
+      }
     }
   }
 
