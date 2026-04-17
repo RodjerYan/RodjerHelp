@@ -1,6 +1,6 @@
 {
   "name": "@accomplish/desktop",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "private": true,
   "type": "module",
   "description": "RodjerHelp Desktop App",
@@ -132,6 +132,7 @@
         "to": "mcp-tools",
         "filter": [
           "**/*",
+          "!node_modules/**",
           "!**/profiles/**",
           "!**/tmp/**",
           "!**/.git/**",
