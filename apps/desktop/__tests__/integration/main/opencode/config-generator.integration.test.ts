@@ -541,6 +541,30 @@ describe('OpenCode Config Generator Integration', () => {
       );
     });
 
+    it('should sanitize enabledProviders before passing to core generateConfig', async () => {
+      const { buildProviderConfigs, generateConfig } = await import('@accomplish_ai/agent-core');
+      vi.mocked(buildProviderConfigs).mockResolvedValueOnce({
+        providerConfigs: [],
+        enabledProviders: [
+          'openai',
+          '',
+          '   ',
+          undefined as unknown as string,
+          null as unknown as string,
+        ],
+        modelOverride: undefined,
+      });
+
+      const { generateOpenCodeConfig } = await import('@main/opencode/config-generator');
+      await generateOpenCodeConfig();
+
+      expect(generateConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          enabledProviders: ['openai'],
+        }),
+      );
+    });
+
     it('should mark connectors as error when token is missing', async () => {
       mockEnabledConnectors = [
         {

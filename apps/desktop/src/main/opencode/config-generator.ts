@@ -203,6 +203,14 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
   }
 
   const enabledSkills = await skillsManager.getEnabled();
+  const sanitizedEnabledProviders = Array.from(
+    new Set(
+      enabledProviders.filter(
+        (provider): provider is string =>
+          typeof provider === 'string' && provider.trim().length > 0,
+      ),
+    ),
+  );
 
   // Fetch enabled connectors with valid tokens
   const storage = getStorage();
@@ -262,7 +270,7 @@ export async function generateOpenCodeConfig(azureFoundryToken?: string): Promis
     providerConfigs,
     permissionApiPort: PERMISSION_API_PORT,
     questionApiPort: QUESTION_API_PORT,
-    enabledProviders,
+    enabledProviders: sanitizedEnabledProviders,
     model: modelOverride?.model,
     smallModel: modelOverride?.smallModel,
     connectors: connectors.length > 0 ? connectors : undefined,

@@ -56,6 +56,21 @@ export interface BuildProviderConfigsOptions {
   providerSettings?: ProviderSettings;
 }
 
+function sanitizeProviderList(providers: Array<string | null | undefined>): string[] {
+  return Array.from(
+    new Set(
+      providers.filter((provider): provider is string => {
+        return typeof provider === 'string' && provider.trim().length > 0;
+      }),
+    ),
+  );
+}
+
+function mapProviderIdToOpenCode(providerId: string): string | null {
+  const mapped = (PROVIDER_ID_TO_OPENCODE as Record<string, string | undefined>)[providerId];
+  return typeof mapped === 'string' && mapped.trim().length > 0 ? mapped : null;
+}
+
 async function buildAzureFoundryProviderConfig(
   endpoint: string,
   deploymentName: string,
@@ -133,11 +148,22 @@ export async function buildProviderConfigs(
     'vertex',
     'minimax',
   ];
-  let enabledProviders = baseProviders;
+  let enabledProviders = [...baseProviders];
 
   if (connectedIds.length > 0) {
-    const mappedProviders = connectedIds.map((id) => PROVIDER_ID_TO_OPENCODE[id]);
-    enabledProviders = [...new Set([...baseProviders, ...mappedProviders])];
+    const mappedProviders = connectedIds
+      .map((id) => mapProviderIdToOpenCode(id))
+      .filter((provider): provider is string => provider !== null);
+    const unknownProviderIds = connectedIds.filter((id) => mapProviderIdToOpenCode(id) === null);
+
+    if (unknownProviderIds.length > 0) {
+      console.warn(
+        '[OpenCode Config Builder] Ignoring unknown connected providers:',
+        unknownProviderIds,
+      );
+    }
+
+    enabledProviders = sanitizeProviderList([...baseProviders, ...mappedProviders]);
     console.log('[OpenCode Config Builder] Using connected providers:', mappedProviders);
   } else {
     const ollamaConfig = getOllamaConfig();
@@ -534,7 +560,11 @@ export async function buildProviderConfigs(
     console.log('[OpenCode Config Builder] Z.AI Coding Plan configured, region:', zaiRegion);
   }
 
-  return { providerConfigs, enabledProviders, modelOverride };
+  return {
+    providerConfigs,
+    enabledProviders: sanitizeProviderList(enabledProviders),
+    modelOverride,
+  };
 }
 
 interface OpenCodeAuthEntry {

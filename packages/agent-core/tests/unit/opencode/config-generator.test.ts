@@ -354,6 +354,25 @@ describe('ConfigGenerator', () => {
       expect(result.config.enabled_providers).toContain('google');
     });
 
+    it('should sanitize invalid enabled providers passed through options', () => {
+      const options: ConfigGeneratorOptions = {
+        ...baseOptions,
+        mcpToolsPath,
+        userDataPath,
+        enabledProviders: [
+          'openai',
+          '',
+          '   ',
+          undefined as unknown as string,
+          null as unknown as string,
+        ],
+      };
+
+      const result = generateConfig(options);
+
+      expect(result.config.enabled_providers).toEqual(['openai']);
+    });
+
     it('should set default agent to accomplish', () => {
       const options: ConfigGeneratorOptions = {
         ...baseOptions,

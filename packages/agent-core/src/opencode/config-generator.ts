@@ -523,8 +523,16 @@ Example bad narration (too terse):
   }
 
   let enabledProviders: string[];
+  const sanitizeEnabledProviders = (providers: Array<string | null | undefined>): string[] =>
+    Array.from(
+      new Set(
+        providers.filter((provider): provider is string => {
+          return typeof provider === 'string' && provider.trim().length > 0;
+        }),
+      ),
+    );
   if (customEnabledProviders) {
-    enabledProviders = [...new Set([...customEnabledProviders, ...Object.keys(providerConfig)])];
+    enabledProviders = sanitizeEnabledProviders([...customEnabledProviders, ...Object.keys(providerConfig)]);
   } else {
     const baseProviders = [
       'anthropic',
@@ -538,7 +546,7 @@ Example bad narration (too terse):
       'amazon-bedrock',
       'minimax',
     ];
-    enabledProviders = [...new Set([...baseProviders, ...Object.keys(providerConfig)])];
+    enabledProviders = sanitizeEnabledProviders([...baseProviders, ...Object.keys(providerConfig)]);
   }
 
   const config: OpenCodeConfigFile = {
